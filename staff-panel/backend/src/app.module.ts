@@ -8,6 +8,7 @@ import { BridgeModule } from './bridge/bridge.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { PunishmentsModule } from './punishments/punishments.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { PlannerModule } from './planner/planner.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TicketsModule } from './tickets/tickets.module';
     RealtimeModule,
     PunishmentsModule,
     TicketsModule,
+    PlannerModule,
   ],
 })
 export class AppModule {}
