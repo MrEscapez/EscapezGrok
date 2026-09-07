@@ -1,10 +1,28 @@
 {
   "name": "escapezcraft-staff-panel-frontend",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "EscapezCraft Staff Panel frontend stub — not implemented in FASE 2",
+  "type": "module",
+  "description": "EscapezCraft Staff Panel frontend — FASE 11–12 skeleton",
   "scripts": {
-    "dev": "echo \"Staff panel frontend not implemented yet\"",
-    "build": "echo \"Staff panel frontend not implemented yet\""
+    "dev": "vite",
+    "build": "tsc -p tsconfig.app.json --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.62.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
