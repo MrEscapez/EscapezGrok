@@ -27,11 +27,18 @@ While logged in, the dashboard connects EventSource to `/api/v1/realtime/stream`
 (via Vite `/api` proxy). Shows Dutch labels for heartbeats and bridge events;
 reconnects on error. Graceful if SSE unsupported.
 
-Preview paths: `/dashboard`, `/punishments`, `/tickets`, `/planner`.
+Preview paths: `/dashboard`, `/punishments`, `/tickets`, `/planner`, `/settings`.
 
 ## Planner (FASE 14 stubs)
 
 Route `/planner` — week selector, DRAFT/PUBLISHED badge + version, days×staff grid with HTML5 drag-and-drop shift chips, Valideren / Publiceren / Terug naar draft. Dutch UI; TanStack Query. No RCON/secrets in the client.
+
+
+## Settings modules
+
+Route `/settings` — EscapezCore module aan/uit toggles (Dutch, dark neon).
+TanStack Query list + optimistic PATCH with rollback. Shows local saved /
+pending sync badges and soft-reload toast. No secrets/RCON in the client.
 
 ## Out of scope
 

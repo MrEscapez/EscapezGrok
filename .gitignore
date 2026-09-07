@@ -24,3 +24,6 @@
 # Minecraft
 **/logs/
 **/world*/
+
+# Staff panel runtime module toggles
+staff-panel/backend/data/modules.json

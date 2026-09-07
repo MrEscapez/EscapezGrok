@@ -10,6 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
+import { SettingsService } from '../settings/settings.service';
 import {
   hasStaffSession,
   hasValidBridgeApiKey,
@@ -23,6 +24,7 @@ export class BridgeController {
     private readonly bridge: BridgeService,
     private readonly config: ConfigService,
     private readonly auth: AuthService,
+    private readonly settings: SettingsService,
   ) {}
 
   /** EscapezCore → staff backend heartbeat (API key required). */
@@ -66,6 +68,16 @@ export class BridgeController {
       );
     }
     return this.bridge.getStatus();
+  }
+
+  /**
+   * Module on/off status for EscapezCore (FASE 10 bridge).
+   * Auth: X-Escapez-Api-Key required.
+   */
+  @Get('modules')
+  modules(@Req() req: Request) {
+    this.assertBridgeKey(req);
+    return this.settings.listForBridge();
   }
 
   private assertBridgeKey(req: Request): void {

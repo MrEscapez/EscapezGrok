@@ -958,3 +958,226 @@ button {
     gap: 0.25rem;
   }
 }
+
+
+/* —— Settings / modules —— */
+.settings-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.settings-banner--warn {
+  background: rgba(255, 180, 40, 0.1);
+  border-color: rgba(255, 180, 40, 0.4);
+  color: #ffe29a;
+}
+
+.settings-banner--ok {
+  background: rgba(45, 125, 255, 0.1);
+  border-color: rgba(45, 125, 255, 0.35);
+  color: #b8d4ff;
+}
+
+.settings-toast {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.settings-toast--ok {
+  background: rgba(45, 200, 120, 0.1);
+  border-color: rgba(45, 200, 120, 0.4);
+  color: #9dffc2;
+}
+
+.settings-toast--warn {
+  background: rgba(255, 180, 40, 0.1);
+  border-color: rgba(255, 180, 40, 0.4);
+  color: #ffe29a;
+}
+
+.settings-toast--error {
+  background: rgba(255, 45, 85, 0.12);
+  border-color: rgba(255, 45, 85, 0.45);
+  color: #ffb3c0;
+}
+
+.settings-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.settings-section-desc {
+  margin: 0 0 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.module-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(12, 12, 20, 0.65);
+}
+
+.module-row__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.module-row__title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+.module-row__label {
+  font-size: 1rem;
+}
+
+.module-row__id {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.module-row__desc {
+  margin: 0.25rem 0 0.45rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.module-source {
+  display: inline-block;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.module-source--local {
+  color: var(--text-muted);
+  border-color: rgba(140, 140, 150, 0.35);
+}
+
+.module-source--pending {
+  color: #ffe29a;
+  background: rgba(255, 180, 40, 0.08);
+  border-color: rgba(255, 180, 40, 0.4);
+}
+
+.module-source--core {
+  color: #9dffc2;
+  background: rgba(45, 200, 120, 0.08);
+  border-color: rgba(45, 200, 120, 0.35);
+}
+
+.module-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.module-switch--busy {
+  opacity: 0.7;
+}
+
+.module-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.module-switch__track {
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: #1a1a28;
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.module-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #8b8ba0;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.module-switch input:checked + .module-switch__track {
+  background: rgba(255, 45, 85, 0.25);
+  border-color: rgba(255, 45, 85, 0.55);
+  box-shadow: var(--neon-glow-red);
+}
+
+.module-switch input:checked + .module-switch__track .module-switch__thumb {
+  transform: translateX(20px);
+  background: var(--red);
+}
+
+.module-switch input:focus-visible + .module-switch__track {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.module-switch__text {
+  min-width: 2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.module-switch input:checked ~ .module-switch__text {
+  color: #ffb3c0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .module-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .module-switch {
+    justify-content: flex-end;
+  }
+}

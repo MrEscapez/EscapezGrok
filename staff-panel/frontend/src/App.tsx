@@ -8,6 +8,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { PunishmentsPage } from './pages/PunishmentsPage';
 import { TicketsPage } from './pages/TicketsPage';
 import { StubPage } from './pages/StubPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { PlannerPage } from './pages/PlannerPage';
 
 export function App() {
@@ -51,15 +52,7 @@ export function App() {
               />
             }
           />
-          <Route
-            path="settings"
-            element={
-              <StubPage
-                title="Instellingen"
-                description="Panel- en teaminstellingen (placeholder)."
-              />
-            }
-          />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
 
