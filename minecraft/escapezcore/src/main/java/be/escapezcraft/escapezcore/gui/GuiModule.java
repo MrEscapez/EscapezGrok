@@ -2,41 +2,55 @@ package be.escapezcraft.escapezcore.gui;
 
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.config.ConfigManager;
+import be.escapezcraft.escapezcore.gui.editor.GuiEditorSkeleton;
+import be.escapezcraft.escapezcore.gui.icon.IconResolver;
+import be.escapezcraft.escapezcore.hooks.HookManager;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.Module;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Basic gui.yml inventories with MATERIAL icons and click actions.
+ * Configurable gui.yml inventories with icon adapters, PDC identity, and anti-exploit clicks.
  */
 public final class GuiModule implements Module {
-
-    public static final String MAIN_TITLE_MARKER = "EscapezCraft";
-    public static final String ADMIN_TITLE_MARKER = "EscapezCore Admin";
 
     private final EscapezCorePlugin plugin;
     private final ConfigManager configManager;
     private final MessagesService messages;
-    private final Map<UUID, String> openMenus = new HashMap<>();
+    private final HookManager hooks;
+
+    private IconResolver iconResolver;
+    private GuiItemFactory itemFactory;
+    private GuiActionExecutor actionExecutor;
+    private GuiEditorSkeleton editor;
     private GuiListener listener;
 
-    public GuiModule(EscapezCorePlugin plugin, ConfigManager configManager, MessagesService messages) {
+    private final Map<String, GuiMenuDefinition> menus = new LinkedHashMap<>();
+    private final Map<UUID, String> openMenus = new LinkedHashMap<>();
+
+    public GuiModule(
+            EscapezCorePlugin plugin,
+            ConfigManager configManager,
+            MessagesService messages,
+            HookManager hooks
+    ) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.messages = messages;
+        this.hooks = hooks;
     }
 
     @Override
@@ -46,99 +60,131 @@ public final class GuiModule implements Module {
 
     @Override
     public void enable() {
-        this.listener = new GuiListener(plugin, this, configManager, messages);
+        this.iconResolver = new IconResolver(plugin, hooks);
+        this.itemFactory = new GuiItemFactory(plugin, messages, iconResolver);
+        this.actionExecutor = new GuiActionExecutor(plugin, this, messages);
+        this.editor = new GuiEditorSkeleton(plugin, this, messages);
+        loadMenus();
+        this.listener = new GuiListener(plugin, this, actionExecutor);
         Bukkit.getPluginManager().registerEvents(listener, plugin);
+        plugin.getLogger().info("GUI-module actief (" + menus.size() + " menu's uit gui.yml).");
     }
 
     @Override
     public void disable() {
         openMenus.clear();
+        menus.clear();
     }
 
     @Override
     public void reload() {
-        plugin.getLogger().info("GUI-definitie herladen uit gui.yml.");
+        reloadMenusOnly();
+        plugin.getLogger().info("GUI-definitie herladen uit gui.yml (" + menus.size() + " menu's).");
+    }
+
+    /**
+     * Reload gui.yml menus only (also used by editor reload stub / soft-reload).
+     */
+    public void reloadMenusOnly() {
+        // ConfigManager already reloads files before modules if softReload order is Config first;
+        // re-read from current ConfigManager state.
+        if (iconResolver != null) {
+            iconResolver.clearLoggedFailures();
+        }
+        loadMenus();
+    }
+
+    private void loadMenus() {
+        menus.clear();
+        FileConfiguration gui = configManager.getGui();
+        if (gui == null) {
+            return;
+        }
+        for (String key : gui.getKeys(false)) {
+            ConfigurationSection section = gui.getConfigurationSection(key);
+            if (section == null) {
+                continue;
+            }
+            // Skip non-menu top-level keys (e.g. future settings)
+            if (!section.contains("size") && !section.contains("items") && !section.contains("title")) {
+                continue;
+            }
+            GuiMenuDefinition def = GuiMenuDefinition.from(key.toLowerCase(Locale.ROOT), section);
+            menus.put(def.menuId(), def);
+        }
     }
 
     public void openMain(Player player) {
-        openFromSection(player, "main");
+        openMenu(player, "main");
     }
 
     public void openAdmin(Player player) {
-        ConfigurationSection admin = configManager.getGui().getConfigurationSection("admin");
-        if (admin != null) {
-            String perm = admin.getString("permission", "escapezcore.admin.gui");
+        GuiMenuDefinition admin = menus.get("admin");
+        if (admin != null && admin.permission() != null && !player.hasPermission(admin.permission())) {
+            messages.send(player, "no-permission");
+            return;
+        }
+        if (admin == null) {
+            String perm = configManager.getGui().getString("admin.permission", "escapezcore.admin.gui");
             if (!player.hasPermission(perm)) {
                 messages.send(player, "no-permission");
                 return;
             }
         }
-        openFromSection(player, "admin");
+        openMenu(player, "admin");
     }
 
-    private void openFromSection(Player player, String sectionName) {
-        ConfigurationSection section = configManager.getGui().getConfigurationSection(sectionName);
-        if (section == null) {
-            plugin.getLogger().warning("GUI section missing: " + sectionName);
+    /**
+     * Open any registered menu by id (permission on menu + hide-if-no-permission items).
+     */
+    public void openMenu(Player player, String menuId) {
+        if (menuId == null || menuId.isBlank()) {
+            return;
+        }
+        String id = menuId.toLowerCase(Locale.ROOT);
+        GuiMenuDefinition menu = menus.get(id);
+        if (menu == null) {
+            plugin.getLogger().warning("GUI menu ontbreekt: " + id);
+            return;
+        }
+        if (menu.permission() != null && !player.hasPermission(menu.permission())) {
+            messages.send(player, "no-permission");
             return;
         }
 
-        String titleRaw = section.getString("title", "<white>Menu</white>");
-        int size = section.getInt("size", 27);
-        if (size % 9 != 0 || size < 9 || size > 54) {
-            size = 27;
-        }
-
-        Component title = messages.parse(titleRaw);
-        EscapezGuiHolder holder = new EscapezGuiHolder(sectionName);
-        Inventory inventory = Bukkit.createInventory(holder, size, title);
+        Component title = messages.parse(menu.title());
+        EscapezGuiHolder holder = new EscapezGuiHolder(id);
+        Inventory inventory = Bukkit.createInventory(holder, menu.size(), title);
         holder.setInventory(inventory);
 
-        ConfigurationSection items = section.getConfigurationSection("items");
-        if (items != null) {
-            for (String key : items.getKeys(false)) {
-                ConfigurationSection itemSec = items.getConfigurationSection(key);
-                if (itemSec == null) {
-                    continue;
-                }
-                int slot = itemSec.getInt("slot", -1);
-                if (slot < 0 || slot >= size) {
-                    continue;
-                }
-                ItemStack stack = buildItem(itemSec);
-                inventory.setItem(slot, stack);
+        for (GuiItemDefinition item : menu.items()) {
+            if (item.hideIfNoPermission()
+                    && item.permission() != null
+                    && !player.hasPermission(item.permission())) {
+                continue;
             }
+            ItemStack stack = itemFactory.build(item);
+            inventory.setItem(item.slot(), stack);
         }
 
-        openMenus.put(player.getUniqueId(), sectionName);
+        openMenus.put(player.getUniqueId(), id);
         player.openInventory(inventory);
-        plugin.debugLog("Opened GUI '" + sectionName + "' for " + player.getUniqueId());
+        plugin.debugLog("Opened GUI '" + id + "' for " + player.getUniqueId());
     }
 
-    private ItemStack buildItem(ConfigurationSection itemSec) {
-        String materialName = itemSec.getString("material", "STONE");
-        Material material = Material.matchMaterial(materialName);
-        if (material == null || !material.isItem()) {
-            material = Material.STONE;
+    public boolean hasMenu(String menuId) {
+        return menuId != null && menus.containsKey(menuId.toLowerCase(Locale.ROOT));
+    }
+
+    public GuiMenuDefinition getMenu(String menuId) {
+        if (menuId == null) {
+            return null;
         }
-        ItemStack stack = new ItemStack(material);
-        ItemMeta meta = stack.getItemMeta();
-        if (meta != null) {
-            String name = itemSec.getString("name");
-            if (name != null) {
-                meta.displayName(messages.parse(name));
-            }
-            List<String> loreRaw = itemSec.getStringList("lore");
-            if (!loreRaw.isEmpty()) {
-                List<Component> lore = new ArrayList<>();
-                for (String line : loreRaw) {
-                    lore.add(messages.parse(line));
-                }
-                meta.lore(lore);
-            }
-            stack.setItemMeta(meta);
-        }
-        return stack;
+        return menus.get(menuId.toLowerCase(Locale.ROOT));
+    }
+
+    public Set<String> listMenuIds() {
+        return Collections.unmodifiableSet(menus.keySet());
     }
 
     public String getOpenMenu(UUID uuid) {
@@ -147,6 +193,18 @@ public final class GuiModule implements Module {
 
     public void clearOpenMenu(UUID uuid) {
         openMenus.remove(uuid);
+    }
+
+    public GuiEditorSkeleton getEditor() {
+        return editor;
+    }
+
+    public IconResolver getIconResolver() {
+        return iconResolver;
+    }
+
+    public GuiItemFactory getItemFactory() {
+        return itemFactory;
     }
 
     public EscapezCorePlugin getPlugin() {

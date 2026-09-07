@@ -1,11 +1,20 @@
-# Basis EscapezCore GUI
+# EscapezCore GUI — configureerbare menu's (MiniMessage, Nederlands)
+# Icon types: MATERIAL | NEXO | ITEMSADDER (fallback naar MATERIAL als soft-dep/id ontbreekt)
+# Actions: close | command | console | open | message | admin | none
+# Identiteit van items: PDC escapezcraft:item_id (niet displayname)
+
 main:
   title: "<gradient:#00E5FF:#7C4DFF><bold>EscapezCraft</bold></gradient>"
   size: 27
   items:
     discord:
       slot: 11
-      material: ENDER_PEARL
+      icon:
+        type: MATERIAL
+        id: ENDER_PEARL
+        fallback: ENDER_PEARL
+      amount: 1
+      glow: false
       name: "<aqua><bold>Discord</bold></aqua>"
       lore:
         - "<gray>Join onze community</gray>"
@@ -14,7 +23,10 @@ main:
       command: discord
     website:
       slot: 12
-      material: BOOK
+      icon:
+        type: MATERIAL
+        id: BOOK
+        fallback: BOOK
       name: "<green><bold>Website</bold></green>"
       lore:
         - "<gray>Bezoek onze website</gray>"
@@ -23,6 +35,7 @@ main:
     vote:
       slot: 13
       material: GOLDEN_APPLE
+      glow: true
       name: "<gold><bold>Vote</bold></gold>"
       lore:
         - "<gray>Steun de server</gray>"
@@ -30,7 +43,10 @@ main:
       command: vote
     shop:
       slot: 14
-      material: EMERALD
+      icon:
+        type: MATERIAL
+        id: EMERALD
+        fallback: EMERALD
       name: "<yellow><bold>Shop</bold></yellow>"
       lore:
         - "<gray>Bekijk de webshop</gray>"
@@ -44,6 +60,14 @@ main:
         - "<gray>Lees de serverregels</gray>"
       action: command
       command: regels
+    info:
+      slot: 16
+      material: PAPER
+      name: "<white><bold>Info</bold></white>"
+      lore:
+        - "<gray>Korte serverboodschap</gray>"
+      action: message
+      message: "<gray>Welkom op </gray><aqua>EscapezCraft</aqua><gray> — veel plezier!</gray>"
     close:
       slot: 22
       material: BARRIER
@@ -58,24 +82,82 @@ admin:
   permission: escapezcore.admin.gui
   items:
     reload:
-      slot: 11
+      slot: 10
       material: REDSTONE
+      glow: true
       name: "<yellow>Herladen</yellow>"
       lore:
         - "<gray>Herlaad messages/commands/aliases/gui</gray>"
         - "<dark_gray>Geen Bukkit reload</dark_gray>"
       action: admin
       admin-action: reload
+      permission: escapezcore.admin.reload
+      hide-if-no-permission: true
     debug:
-      slot: 13
+      slot: 12
       material: SPYGLASS
       name: "<aqua>Debug toggle</aqua>"
       lore:
         - "<gray>Schakel debug-logging</gray>"
       action: admin
       admin-action: debug
+      permission: escapezcore.admin
+      hide-if-no-permission: true
+    editor:
+      slot: 14
+      material: WRITABLE_BOOK
+      name: "<light_purple>GUI editor</light_purple>"
+      lore:
+        - "<gray>Skeleton: list / open / save stub</gray>"
+        - "<dark_gray>/ec admin gui</dark_gray>"
+      action: admin
+      admin-action: editor
+      permission: escapezcore.admin.gui
+    open-main:
+      slot: 16
+      material: COMPASS
+      name: "<aqua>Open hoofdmenu</aqua>"
+      lore:
+        - "<gray>Inspecteer het main-menu</gray>"
+      action: open
+      open: main
     close:
       slot: 22
       material: BARRIER
       name: "<red>Sluiten</red>"
       action: close
+
+# Voorbeeldmenu voor Nexo/ItemsAdder fallback (optioneel; veilig zonder soft-deps)
+example-custom:
+  title: "<gray>Custom icon voorbeeld</gray>"
+  size: 9
+  permission: escapezcore.admin.gui
+  items:
+    nexo-demo:
+      slot: 2
+      icon:
+        type: NEXO
+        id: escapezcraft_demo_item
+        fallback: DIAMOND
+      name: "<aqua>Nexo demo</aqua>"
+      lore:
+        - "<gray>Valt terug op DIAMOND als Nexo ontbreekt</gray>"
+      action: message
+      message: "<gray>Nexo-demo geklikt (of fallback).</gray>"
+    ia-demo:
+      slot: 4
+      icon:
+        type: ITEMSADDER
+        id: escapezcraft:demo_item
+        fallback: EMERALD
+      name: "<green>ItemsAdder demo</green>"
+      lore:
+        - "<gray>Valt terug op EMERALD als IA ontbreekt</gray>"
+      action: message
+      message: "<gray>ItemsAdder-demo geklikt (of fallback).</gray>"
+    back:
+      slot: 6
+      material: ARROW
+      name: "<yellow>Terug naar admin</yellow>"
+      action: open
+      open: admin
