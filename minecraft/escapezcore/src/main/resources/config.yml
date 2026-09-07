@@ -1,6 +1,6 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 6
+config-version: 7
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
@@ -59,3 +59,5 @@ staffchat:
 
 # Resource pack: zie resourcepack.yml (FASE 8)
 # Custom items: zie items.yml (FASE 8)
+
+# Soft-deps / plugin hooks: zie integrations.yml (FASE 9)

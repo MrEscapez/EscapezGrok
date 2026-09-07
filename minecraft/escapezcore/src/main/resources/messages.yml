@@ -7,7 +7,7 @@ no-permission: "<red>Je hebt geen toestemming voor dit commando.</red>"
 player-only: "<red>Dit commando is alleen voor spelers.</red>"
 unknown-subcommand: "<red>Onbekend subcommando. Gebruik </red><yellow>/ec help</yellow><red>.</red>"
 cooldown: "<red>Wacht nog </red><yellow>{seconds}s</yellow><red> voordat je dit opnieuw kunt gebruiken.</red>"
-reload-success: "<green>Configuratie, berichten, commands, aliases, GUI, scoreboard, tips, vote, resourcepack en items herladen.</green>"
+reload-success: "<green>Configuratie, berichten, commands, aliases, GUI, scoreboard, tips, vote, resourcepack, items en integraties herladen.</green>"
 reload-failed: "<red>Herladen mislukt: </red><yellow>{error}</yellow>"
 admin-hidden: ""  # nooit gelekt — lege response zonder perm
 gui-opened: "<gray>Menu geopend.</gray>"
@@ -26,8 +26,9 @@ info-shop: "<gray>Shop: </gray><aqua><click:open_url:'{url}'><hover:show_text:'<
 info-regels: "<gray>Regels: </gray><aqua><click:open_url:'{url}'><hover:show_text:'<gray>Klik om te openen</gray>'>{url}</hover></click></aqua>"
 info-staff: "<gray>Staff: </gray><aqua><click:open_url:'{url}'><hover:show_text:'<gray>Klik om te openen</gray>'>{url}</hover></click></aqua>"
 
-hooks-header: "<gray>Gedetecteerde hooks:</gray>"
-hooks-line: "<gray>• </gray><white>{plugin}</white><gray>: </gray><green>{status}</green>"
+hooks-header: "<gradient:#00E5FF:#7C4DFF><bold>Integraties</bold></gradient> <gray>(soft-deps)</gray>"
+hooks-line: "<gray>• </gray><aqua>{plugin}</aqua> <dark_gray>({id} · {mode})</dark_gray><gray>: config </gray><white>{config}</white><gray> · aanwezig </gray><white>{present}</white><gray> · </gray><green>{active}</green>"
+hooks-none: "<gray>Geen integraties geregistreerd.</gray>"
 
 item-info-id: "<gray>Item in hand: </gray><white>{material}</white><gray> · id </gray><aqua>{item_id}</aqua>"
 
@@ -111,3 +112,6 @@ items-player-not-found: "<red>Speler niet gevonden (moet online zijn): </red><ye
 items-given: "<green>Item </green><aqua>{id}</aqua><green> ×</green><white>{amount}</white><green> gegeven aan </green><white>{player}</white><green>.</green>"
 items-received: "<green>Je ontving </green><aqua>{id}</aqua><green> ×</green><white>{amount}</white><green>.</green>"
 items-gui-opened: "<gray>Items-admin GUI geopend (</gray><white>{count}</white><gray> items).</gray>"
+
+# --- Hooks / integrations (FASE 9) ---
+# (hooks-header / hooks-line defined above)

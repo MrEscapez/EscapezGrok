@@ -3,7 +3,7 @@ version: '${version}'
 main: be.escapezcraft.escapezcore.EscapezCorePlugin
 api-version: '1.21'
 author: birger147
-description: EscapezCraft core plugin — GUI, commands, hooks, reports, staffchat, scoreboard, tips, vote, resource pack, custom items, optional database
+description: EscapezCraft core plugin — GUI, commands, soft-dep hooks/adapters, reports, staffchat, scoreboard, tips, vote, resource pack, custom items, optional database
 website: https://example.com/escapezcraft
 softdepend:
   - LuckPerms
@@ -11,6 +11,7 @@ softdepend:
   - PlaceholderAPI
   - LiteBans
   - WorldGuard
+  - WorldEdit
   - Lands
   - McMMO
   - ItemsAdder
@@ -19,6 +20,9 @@ softdepend:
   - CoreProtect
   - ProtocolLib
   - CMI
+  - MythicMobs
+  - ModelEngine
+  - ViaVersion
 
 commands:
   ec:

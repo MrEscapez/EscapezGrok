@@ -1,0 +1,39 @@
+# EscapezCore soft-dependency integrations (FASE 9)
+# enabled: false → never hook even if the plugin is present
+# Optional settings blocks are reserved for future thin wrappers (ignored safely today)
+
+integrations:
+  luckperms:
+    enabled: true
+  vault:
+    enabled: true
+  placeholderapi:
+    enabled: true
+  litebans:
+    enabled: true
+  worldguard:
+    enabled: true
+  coreprotect:
+    enabled: true
+  lands:
+    enabled: true
+  mcmmo:
+    enabled: true
+  itemsadder:
+    enabled: true
+  nexo:
+    enabled: true
+  excellentcrates:
+    enabled: true
+  mythicmobs:
+    enabled: true
+  modelengine:
+    enabled: true
+  cmi:
+    enabled: true
+  protocollib:
+    enabled: true
+  viaversion:
+    enabled: true
+  worldedit:
+    enabled: true

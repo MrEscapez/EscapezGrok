@@ -18,6 +18,7 @@
 | `/ec admin item give <id> [speler] [aantal]` | Give custom item |
 | `/ec admin item get <id> [aantal]` | Give custom item to self |
 | `/ec admin item gui` | Open admin items GUI |
+| `/ec admin hooks` | Soft-dep integrations status (present/enabled/active/mode) |
 | `/ec admin report …` | Staff report management (stealth admin) |
 | `/report <speler> <reden>` | Report a player (`meld` alias) |
 | `/reports <list\|view\|claim\|resolve\|dismiss\|note>` | Staff report management |
