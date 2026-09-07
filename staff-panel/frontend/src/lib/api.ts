@@ -8,6 +8,35 @@ export type StaffUser = {
   permissions: string[];
 };
 
+export type HealthStatus = {
+  status: string;
+  service: string;
+  timestamp: string;
+};
+
+export type PlayerItem = {
+  id: string;
+  username: string;
+  uuid: string | null;
+};
+
+export type PlayersResponse = {
+  items: PlayerItem[];
+  query: string;
+};
+
+export type ReportItem = {
+  id: string;
+  player: string;
+  reason: string;
+  status: string;
+  createdAt: string;
+};
+
+export type ReportsResponse = {
+  items: ReportItem[];
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -63,6 +92,21 @@ export async function apiFetch<T>(
 
 export function fetchMe(): Promise<StaffUser> {
   return apiFetch<StaffUser>('/auth/me');
+}
+
+export function fetchHealth(): Promise<HealthStatus> {
+  return apiFetch<HealthStatus>('/health');
+}
+
+export function fetchPlayers(q: string): Promise<PlayersResponse> {
+  const params = new URLSearchParams();
+  if (q.trim()) params.set('q', q.trim());
+  const qs = params.toString();
+  return apiFetch<PlayersResponse>(`/players${qs ? `?${qs}` : ''}`);
+}
+
+export function fetchReports(): Promise<ReportsResponse> {
+  return apiFetch<ReportsResponse>('/reports');
 }
 
 export function login(

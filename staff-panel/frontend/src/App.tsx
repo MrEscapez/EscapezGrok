@@ -2,6 +2,9 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { RequireAuth } from './components/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { PlayersPage } from './pages/PlayersPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { StubPage } from './pages/StubPage';
 
 export function App() {
@@ -12,33 +15,9 @@ export function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route
-            path="dashboard"
-            element={
-              <StubPage
-                title="Dashboard"
-                description="Overzicht van staff-activiteit en serverstatus (placeholder)."
-              />
-            }
-          />
-          <Route
-            path="players"
-            element={
-              <StubPage
-                title="Spelers"
-                description="Spelerzoeken en profielen (placeholder)."
-              />
-            }
-          />
-          <Route
-            path="reports"
-            element={
-              <StubPage
-                title="Reports"
-                description="Inkomende reports van spelers (placeholder)."
-              />
-            }
-          />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="players" element={<PlayersPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route
             path="punishments"
             element={

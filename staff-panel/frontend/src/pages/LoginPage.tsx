@@ -1,25 +1,68 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, login, type StaffUser } from '../lib/api';
 import { useMeQuery } from '../hooks/useMeQuery';
+
+function dutchLoginError(err: ApiError): string {
+  const msg = (err.message || '').toLowerCase();
+  if (err.status === 401) {
+    if (msg.includes('te veel')) {
+      return 'Te veel pogingen. Probeer later opnieuw.';
+    }
+    return 'Ongeldige gebruikersnaam of wachtwoord.';
+  }
+  if (err.status === 400) {
+    return err.message || 'Controleer je invoer.';
+  }
+  if (err.status >= 500) {
+    return 'Serverfout bij inloggen. Probeer het later opnieuw.';
+  }
+  return err.message || 'Inloggen mislukt';
+}
+
+function safeRedirectPath(from: unknown): string {
+  if (
+    from &&
+    typeof from === 'object' &&
+    'pathname' in from &&
+    typeof (from as { pathname: unknown }).pathname === 'string'
+  ) {
+    const pathname = (from as { pathname: string }).pathname;
+    if (pathname.startsWith('/') && !pathname.startsWith('//') && pathname !== '/login') {
+      const search =
+        'search' in from && typeof (from as { search: unknown }).search === 'string'
+          ? (from as { search: string }).search
+          : '';
+      return `${pathname}${search}`;
+    }
+  }
+  return '/dashboard';
+}
 
 export function LoginPage() {
   const queryClient = useQueryClient();
   const meQuery = useMeQuery();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const intended = safeRedirectPath(
+    (location.state as { from?: unknown } | null)?.from,
+  );
 
   const loginMutation = useMutation({
     mutationFn: () => login(username.trim(), password),
     onSuccess: (data) => {
       setError(null);
       queryClient.setQueryData<StaffUser>(['auth', 'me'], data.user);
+      navigate(intended, { replace: true });
     },
     onError: (err: unknown) => {
       if (err instanceof ApiError) {
-        setError(err.message || 'Inloggen mislukt');
+        setError(dutchLoginError(err));
       } else {
         setError('Kan de server niet bereiken. Is de API gestart?');
       }
@@ -27,7 +70,7 @@ export function LoginPage() {
   });
 
   if (meQuery.isSuccess && meQuery.data) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={intended} replace />;
   }
 
   function onSubmit(e: FormEvent) {
