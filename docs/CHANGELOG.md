@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5
+- FASE 8: Resource pack module (`resourcepack.yml`) — enable/required/url/SHA1, join apply, Paper `PlayerResourcePackStatusEvent`, Dutch prompt/decline/fail/success (+ kick when required).
+- Soft-reload safe via `/ec admin reload`; placeholder `example.com` URLs are not sent.
+- Custom items module (`items.yml`) — identity via PDC `escapezcraft:item_id` (not display name).
+- Admin: `/ec admin item list|info|give|get|gui` (+ perms `escapezcore.admin.item*`); admin items GUI reuses IconResolver MATERIAL|NEXO|ITEMSADDER + fallback.
+- Monorepo `resourcepack/` stubs (namespace `escapezcraft`, font stubs) + zip/SHA1/external-host pipeline docs; neon branding note.
+- Version **0.1.5**, config-version **6**.
+
 ## 0.1.4
 - FASE 7: Scoreboard (no-flicker team-prefix sidebar), tips broadcast, vote reminders.
 - `scoreboard.yml` — title/lines, refresh ticks, per-world filter, toggle, tips mode/interval, vote-reminder interval.

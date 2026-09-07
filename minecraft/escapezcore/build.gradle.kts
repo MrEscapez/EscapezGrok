@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "be.escapezcraft"
-version = "0.1.4"
+version = "0.1.5"
 description = "EscapezCore — core Paper plugin for EscapezCraft"
 
 java {

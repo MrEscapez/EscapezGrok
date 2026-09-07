@@ -1,0 +1,56 @@
+# EscapezCore custom items (FASE 8)
+# Identity: PersistentDataContainer NamespacedKey escapezcraft:item_id (NOT display name)
+# Icon types: MATERIAL | NEXO | ITEMSADDER — soft-deps via IconResolver + fallback MATERIAL
+
+enabled: true
+
+items:
+  escapez_token:
+    display-name: "<gradient:#FF1744:#00E5FF><bold>Escapez Token</bold></gradient>"
+    lore:
+      - "<gray>Server-valuta / beloning</gray>"
+      - "<dark_gray>Identity: escapezcraft:item_id</dark_gray>"
+    icon:
+      type: MATERIAL
+      id: SUNFLOWER
+      fallback: SUNFLOWER
+    amount: 1
+    glow: true
+    custom-model-data: 0
+
+  neon_shard:
+    display-name: "<aqua><bold>Neon Shard</bold></aqua>"
+    lore:
+      - "<gray>Zwart / rood / blauw neon branding</gray>"
+      - "<dark_gray>Stub item — pack model later</dark_gray>"
+    icon:
+      type: MATERIAL
+      id: AMETHYST_SHARD
+      fallback: AMETHYST_SHARD
+    amount: 1
+    glow: true
+    custom-model-data: 0
+
+  demo_nexo:
+    display-name: "<light_purple>Nexo demo item</light_purple>"
+    lore:
+      - "<gray>Valt terug op DIAMOND zonder Nexo</gray>"
+    icon:
+      type: NEXO
+      id: escapezcraft_demo_item
+      fallback: DIAMOND
+    amount: 1
+    glow: false
+    custom-model-data: 0
+
+  demo_itemsadder:
+    display-name: "<green>ItemsAdder demo item</green>"
+    lore:
+      - "<gray>Valt terug op EMERALD zonder ItemsAdder</gray>"
+    icon:
+      type: ITEMSADDER
+      id: escapezcraft:demo_item
+      fallback: EMERALD
+    amount: 1
+    glow: false
+    custom-model-data: 0

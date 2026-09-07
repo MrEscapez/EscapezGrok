@@ -3,18 +3,17 @@ package be.escapezcraft.escapezcore.command;
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.gui.GuiModule;
-import be.escapezcraft.escapezcore.gui.item.GuiItemKeys;
+import be.escapezcraft.escapezcore.items.ItemAdminCommands;
+import be.escapezcraft.escapezcore.items.ItemsModule;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.report.ReportCommand;
 import be.escapezcraft.escapezcore.report.ReportStaffCommands;
 import be.escapezcraft.escapezcore.scoreboard.ScoreboardCommand;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +42,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
     private ReportCommand reportCommand;
     private ReportStaffCommands reportStaffCommands;
     private ScoreboardCommand scoreboardCommand;
+    private ItemsModule itemsModule;
 
     public EscapezCommand(
             EscapezCorePlugin plugin,
@@ -67,6 +67,10 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
 
     public void setScoreboardHandler(ScoreboardCommand scoreboardCommand) {
         this.scoreboardCommand = scoreboardCommand;
+    }
+
+    public void setItemsModule(ItemsModule itemsModule) {
+        this.itemsModule = itemsModule;
     }
 
     @Override
@@ -166,27 +170,17 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 return guiModule.getEditor().handle(sender, guiArgs);
             }
             case "item" -> {
-                if (!(sender instanceof Player player)) {
-                    messages.send(sender, "player-only");
-                    return true;
-                }
-                if (!sender.hasPermission(ADMIN_PERMISSION)) {
+                if (!sender.hasPermission(ADMIN_PERMISSION)
+                        && !sender.hasPermission(ItemAdminCommands.PERM_ITEM)) {
                     messages.send(sender, "no-permission");
                     return true;
                 }
-                ItemStack hand = player.getInventory().getItemInMainHand();
-                if (hand.getType() == Material.AIR) {
-                    messages.send(sender, "no-item");
+                if (itemsModule == null || itemsModule.getAdminCommands() == null) {
+                    messages.send(sender, "items-disabled");
                     return true;
                 }
-                String pdcId = GuiItemKeys.getItemId(plugin, hand);
-                if (pdcId != null) {
-                    messages.send(sender, "item-info-id", Map.of(
-                            "material", hand.getType().name(),
-                            "item_id", pdcId));
-                } else {
-                    messages.send(sender, "item-info", Map.of("material", hand.getType().name()));
-                }
+                return itemsModule.getAdminCommands().handle(
+                        sender, Arrays.copyOfRange(args, 1, args.length));
             }
             case "debug" -> {
                 if (!sender.hasPermission(ADMIN_PERMISSION)) {
@@ -239,6 +233,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
         // Admin help ONLY if permitted — never leak otherwise
         if (sender.hasPermission(ADMIN_PERMISSION)) {
             entries.add(new HelpEntry("ec admin", "Admin-tools (reload, gui, item, debug, report)", ADMIN_PERMISSION));
+            entries.add(new HelpEntry("ec admin item", "Custom items (list/info/give/get/gui)", ItemAdminCommands.PERM_ITEM));
             entries.add(new HelpEntry("ec admin gui", "GUI editor skeleton (list/open/save)", "escapezcore.admin.gui"));
             entries.add(new HelpEntry("ec admin report", "Report-beheer (list/view/claim/…)", ADMIN_PERMISSION));
         }
@@ -321,6 +316,13 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
         // /ec admin report <...>
         if (args.length >= 3 && args[1].equalsIgnoreCase("report") && reportStaffCommands != null) {
             return reportStaffCommands.tabComplete(sender, Arrays.copyOfRange(args, 2, args.length));
+        }
+
+        // /ec admin item <...>
+        if (args.length >= 3 && args[1].equalsIgnoreCase("item")
+                && itemsModule != null && itemsModule.getAdminCommands() != null) {
+            return itemsModule.getAdminCommands().tabComplete(
+                    sender, Arrays.copyOfRange(args, 2, args.length));
         }
 
         return Collections.emptyList();
