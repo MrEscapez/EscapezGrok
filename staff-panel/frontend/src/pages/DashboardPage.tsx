@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchHealth } from '../lib/api';
+import { fetchBridgeStatus, fetchHealth } from '../lib/api';
 import { useMeQuery } from '../hooks/useMeQuery';
+import { LiveFeedWidget } from '../components/LiveFeedWidget';
 
 function formatTimestamp(iso: string | undefined): string {
   if (!iso) return '—';
@@ -23,6 +24,12 @@ export function DashboardPage() {
     refetchInterval: 15_000,
     retry: 1,
   });
+  const bridgeQuery = useQuery({
+    queryKey: ['bridge', 'status'],
+    queryFn: fetchBridgeStatus,
+    refetchInterval: 15_000,
+    retry: 1,
+  });
 
   const online = healthQuery.isSuccess && healthQuery.data?.status === 'ok';
   const offline = healthQuery.isError;
@@ -39,13 +46,18 @@ export function DashboardPage() {
   }
 
   const user = meQuery.data;
+  const hb = bridgeQuery.data?.lastHeartbeat;
+  const hbBody = hb?.body ?? {};
+  const coreStatus =
+    typeof hbBody.status === 'string' ? hbBody.status : hb ? 'ontvangen' : null;
+  const hasHeartbeat = !!hb;
 
   return (
     <section className="page">
       <header className="page__header">
         <h1 className="page__title">Dashboard</h1>
         <p className="page__desc">
-          Live overzicht van API-status en ingelogde sessie.
+          Live overzicht van API-status, EscapezCore heartbeat en sessie.
         </p>
       </header>
 
@@ -112,16 +124,52 @@ export function DashboardPage() {
           </dl>
         </article>
 
-        <article className="dash-card dash-card--wide">
+        <article className="dash-card">
           <div className="dash-card__head">
-            <h2 className="dash-card__title">Serverstatus</h2>
-            <span className="status-pill status-pill--muted">Placeholder</span>
+            <h2 className="dash-card__title">EscapezCore heartbeat</h2>
+            <span
+              className={
+                hasHeartbeat
+                  ? 'status-pill status-pill--online'
+                  : 'status-pill status-pill--muted'
+              }
+            >
+              {hasHeartbeat ? 'Heartbeat' : 'Nog geen'}
+            </span>
           </div>
-          <p className="dash-card__hint">
-            Minecraft-serverstatus volgt later via EscapezCore. Geen RCON in
-            dit panel.
-          </p>
+          <dl className="dash-dl">
+            <div>
+              <dt>Laatst ontvangen</dt>
+              <dd>{formatTimestamp(hb?.receivedAt)}</dd>
+            </div>
+            <div>
+              <dt>Serverstatus</dt>
+              <dd>{coreStatus ?? '—'}</dd>
+            </div>
+            <div>
+              <dt>Eventbuffer</dt>
+              <dd>
+                {bridgeQuery.isSuccess
+                  ? `${bridgeQuery.data.bufferSize} events`
+                  : bridgeQuery.isPending
+                    ? 'Laden…'
+                    : '—'}
+              </dd>
+            </div>
+          </dl>
+          {!hasHeartbeat && bridgeQuery.isSuccess ? (
+            <p className="dash-card__hint">
+              EscapezCore heeft nog geen heartbeat gepost naar de bridge.
+            </p>
+          ) : null}
+          {bridgeQuery.isError ? (
+            <p className="dash-card__hint dash-card__hint--warn">
+              Bridge-status niet bereikbaar.
+            </p>
+          ) : null}
         </article>
+
+        <LiveFeedWidget enabled={!!user} />
       </div>
     </section>
   );
