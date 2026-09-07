@@ -3,7 +3,7 @@ version: '${version}'
 main: be.escapezcraft.escapezcore.EscapezCorePlugin
 api-version: '1.21'
 author: birger147
-description: EscapezCraft core plugin — GUI, commands, hooks, optional database
+description: EscapezCraft core plugin — GUI, commands, hooks, reports, staffchat, optional database
 website: https://example.com/escapezcraft
 softdepend:
   - LuckPerms
@@ -23,7 +23,7 @@ softdepend:
 commands:
   ec:
     description: EscapezCore hoofdcommando — opent de GUI of toont help
-    usage: /ec [help|admin]
+    usage: /ec [help|report|admin]
     aliases: [escapezcore, escapez]
   discord:
     description: Toon de Discord-link
@@ -49,6 +49,17 @@ commands:
     description: Toon de staff-informatie-link
     usage: /staff
     aliases: [team]
+  report:
+    description: Meld een speler bij de staff
+    usage: /report <speler> <reden>
+    aliases: [meld]
+  reports:
+    description: Beheer speler-meldingen (staff)
+    usage: /reports <list|view|claim|resolve|dismiss|note>
+  sc:
+    description: Staffchat — toggle of één bericht
+    usage: /sc [bericht]
+    aliases: [staffchat]
 
 permissions:
   escapezcore.command.*:
@@ -62,6 +73,7 @@ permissions:
       escapezcore.command.shop: true
       escapezcore.command.regels: true
       escapezcore.command.staff: true
+      escapezcore.command.report: true
   escapezcore.command.ec:
     description: Gebruik /ec
     default: true
@@ -84,11 +96,21 @@ permissions:
     description: Gebruik /staff
     default: true
   escapezcore.command.report:
-    description: Gebruik report-functionaliteit
+    description: Gebruik /report
     default: true
+  escapezcore.report.notify:
+    description: Ontvang notificaties bij nieuwe reports
+    default: op
+  escapezcore.report.manage:
+    description: Reports beheren (list/view/claim/resolve/dismiss/note)
+    default: op
   escapezcore.staff:
     description: Staff-rechten
     default: op
+    children:
+      escapezcore.report.notify: true
+      escapezcore.report.manage: true
+      escapezcore.staffchat: true
   escapezcore.staffchat:
     description: Staffchat gebruiken
     default: op
@@ -98,6 +120,7 @@ permissions:
     children:
       escapezcore.admin.gui: true
       escapezcore.admin.reload: true
+      escapezcore.report.manage: true
   escapezcore.admin.gui:
     description: Admin GUI openen
     default: op

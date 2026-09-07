@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "be.escapezcraft"
-version = "0.1.1"
+version = "0.1.2"
 description = "EscapezCore — core Paper plugin for EscapezCraft"
 
 java {
@@ -25,6 +25,8 @@ dependencies {
 
     // HikariCP for optional async PostgreSQL pool
     implementation("com.zaxxer:HikariCP:5.1.0")
+    // Embedded SQLite fallback for reports when PostgreSQL is disabled
+    implementation("org.xerial:sqlite-jdbc:3.46.1.3")
 }
 
 tasks.processResources {
@@ -38,7 +40,7 @@ tasks.processResources {
 tasks.jar {
     archiveBaseName.set("EscapezCore")
     archiveVersion.set(project.version.toString())
-    // Bundle implementation deps (HikariCP) into the plugin jar
+    // Bundle implementation deps (HikariCP, SQLite) into the plugin jar
     from({
         configurations.runtimeClasspath.get()
             .filter { it.name.endsWith(".jar") }

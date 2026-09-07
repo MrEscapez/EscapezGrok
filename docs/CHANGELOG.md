@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+- FASE 5: player reports (`/report`, `/ec report`) with cooldown, statuses OPEN/IN_PROGRESS/RESOLVED/DISMISSED, staff notes, staff notify.
+- Report persistence: PostgreSQL when DatabaseModule/Hikari enabled; else SQLite (`reports.db`); else YAML file fallback (`reports.yml`). Async I/O, UUID identity.
+- Staff report management: `/reports` and `/ec admin report` (list/view/claim/resolve/dismiss/note); stealth admin rules preserved.
+- Staffchat: `/sc` one-shot + toggle mode, never leaks to global chat, console logging, Dutch config messages.
+
 ## 0.1.1
 - FASE 4 GUI framework: configurable items (icon MATERIAL|NEXO|ITEMSADDER + fallback), amounts, glow, custom-model-data, permissions, actions (command/open/message/close/admin/console).
 - Anti-exploit inventory protection for Escapez GUIs (shift/number/drag/collect/creative/double-click; top-inventory + holder/menuId validation).

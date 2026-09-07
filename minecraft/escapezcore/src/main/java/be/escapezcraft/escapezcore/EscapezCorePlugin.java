@@ -7,6 +7,8 @@ import be.escapezcraft.escapezcore.gui.GuiModule;
 import be.escapezcraft.escapezcore.hooks.HookManager;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.ModuleManager;
+import be.escapezcraft.escapezcore.report.ReportModule;
+import be.escapezcraft.escapezcore.staffchat.StaffChatModule;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -21,6 +23,8 @@ public final class EscapezCorePlugin extends JavaPlugin {
     private DatabaseModule databaseModule;
     private CommandModule commandModule;
     private GuiModule guiModule;
+    private ReportModule reportModule;
+    private StaffChatModule staffChatModule;
     private boolean debug;
 
     @Override
@@ -33,12 +37,21 @@ public final class EscapezCorePlugin extends JavaPlugin {
         this.databaseModule = new DatabaseModule(this, configManager);
         this.guiModule = new GuiModule(this, configManager, messagesService, hookManager);
         this.commandModule = new CommandModule(this, configManager, messagesService, guiModule);
+        this.reportModule = new ReportModule(
+                this, configManager, messagesService, databaseModule, commandModule.getCooldownService());
+        this.staffChatModule = new StaffChatModule(this, configManager, messagesService);
+
+        // Give CommandModule access to report/staffchat after construction
+        this.commandModule.wireFeatureModules(reportModule, staffChatModule);
 
         moduleManager.register(configManager);
         moduleManager.register(messagesService);
         moduleManager.register(hookManager);
         moduleManager.register(databaseModule);
         moduleManager.register(guiModule);
+        // Reports / staffchat before commands so repositories & listeners are ready at bind time
+        moduleManager.register(reportModule);
+        moduleManager.register(staffChatModule);
         moduleManager.register(commandModule);
 
         moduleManager.enableAll();
@@ -89,6 +102,14 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
     public GuiModule getGuiModule() {
         return guiModule;
+    }
+
+    public ReportModule getReportModule() {
+        return reportModule;
+    }
+
+    public StaffChatModule getStaffChatModule() {
+        return staffChatModule;
     }
 
     public boolean isDebug() {

@@ -8,3 +8,5 @@ stem: vote
 store: shop
 rules: regels
 team: staff
+meld: report
+staffchat: sc
