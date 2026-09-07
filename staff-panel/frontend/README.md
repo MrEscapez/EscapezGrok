@@ -37,8 +37,9 @@ Route `/planner` — week selector, DRAFT/PUBLISHED badge + version, days×staff
 ## Settings modules
 
 Route `/settings` — EscapezCore module aan/uit toggles (Dutch, dark neon).
-TanStack Query list + optimistic PATCH with rollback. Shows local saved /
-pending sync badges and soft-reload toast. No secrets/RCON in the client.
+TanStack Query list + optimistic PATCH with rollback. Backend proxies to Core
+(`CORE_API_BASE`, `X-Escapez-Api-Key`); offline → local + pending badges.
+No secrets/RCON/API keys in the client.
 
 
 ## Server (FASE 15)

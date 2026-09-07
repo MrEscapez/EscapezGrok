@@ -26,8 +26,8 @@ export class SettingsController {
 
   @Get('modules')
   @RequirePermissions(Permissions.SETTINGS_VIEW)
-  listModules() {
-    return { modules: this.settings.listModules() };
+  async listModules() {
+    return { modules: await this.settings.listModules() };
   }
 
   @Patch('modules/:id')

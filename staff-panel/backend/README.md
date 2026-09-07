@@ -16,32 +16,40 @@ NestJS + TypeScript API (FASE 11–15 + RBAC roles/permissions + settings + RCON
 
 ## EscapezCore bridge (FASE 13)
 
-EscapezCore will POST heartbeat/events to /api/v1/bridge/ with header X-Escapez-Api-Key
-matching BRIDGE_API_KEY from env (CHANGE_ME_BRIDGE_KEY in .env.example). Never expose to frontend.
-HMAC-ready stub: src/bridge/bridge-auth.ts (API key only today).
+EscapezCore POSTs heartbeat/events to /api/v1/bridge/ with header **X-Escapez-Api-Key**
+matching `BRIDGE_API_KEY` from env (same value as Core `ESCAPEZ_API_KEY`). Never Bearer.
+Never expose to frontend. HMAC-ready stub: `src/bridge/bridge-auth.ts` (API key only today).
 
 - POST /api/v1/bridge/heartbeat
 - POST /api/v1/bridge/events
 - GET /api/v1/bridge/status (staff session OR bridge key)
-- GET /api/v1/bridge/modules (bridge key) — module on/off status for EscapezCore
+- GET /api/v1/bridge/modules (bridge key) — same module merge as Settings GET
 
 
-## Settings modules (EscapezCore soft-reload contract)
+## Settings modules (EscapezCore soft-reload proxy)
 
 Staff cookie + RBAC (`settings:view` / `settings:manage`). Stable ids only:
 `scoreboard`, `tips`, `vote`, `resourcepack`, `reports`, `staffchat`, `items`.
 
-Persisted to `data/modules.json` (in-memory + JSON file).
+Persisted to `data/modules.json` (in-memory + JSON file). Dutch labels come from the
+backend catalog (Core returns English `name`; panel maps `id` → catalog `label`).
+
+Env (backend only — no secrets in frontend):
+
+| Variable | Default | Notes |
+|----------|---------|--------|
+| `CORE_API_BASE` | `http://127.0.0.1:8765` | Unset → default. `off` / `disabled` / `false` / `none` / empty → proxy off |
+| `CORE_API_TIMEOUT_MS` | `3000` | GET/PATCH timeout to Core |
+| `BRIDGE_API_KEY` | (required) | Sent as `X-Escapez-Api-Key`; align with Core `ESCAPEZ_API_KEY` |
 
 - GET /api/v1/settings/modules → `{ modules: [{ id, label, enabled, source }] }`
-  - `source`: `local` | `core` | `pending`
-- PATCH /api/v1/settings/modules/:id `{ enabled: boolean }` → module + `syncStatus` +
-  `{ softReload: true, note: "soft-reload gevraagd (stub tot EscapezCore FASE 10 live is)" }`
-
-Panel → Core push stub: when `CORE_API_BASE` is set, backend PATCHes
-`{CORE}/api/v1/modules/:id` with `X-Escapez-Api-Key`. On 503/timeout/error (or when Core
-is not configured): local save + `syncStatus=pending`. Matches future EscapezCore
-soft-reload PATCH (no main-thread join).
+  - Tries Core `GET {CORE_API_BASE}/api/v1/modules` first → `source: "core"`
+  - On failure/timeout/offline/disabled → local `modules.json` with `source: "local"` or `"pending"`
+- PATCH /api/v1/settings/modules/:id `{ enabled: boolean }`
+  - Always persists locally first
+  - Proxies `PATCH {CORE}/api/v1/modules/:id` `{ enabled }` with `X-Escapez-Api-Key`
+  - Success → `source: "core"`, `syncStatus: "synced"`, soft-reload `note` from Core if present
+  - Failure → local saved + `syncStatus: "pending"` + clear Dutch `note` for the UI
 
 ## Realtime SSE
 

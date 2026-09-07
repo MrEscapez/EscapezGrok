@@ -152,12 +152,12 @@ export function SettingsPage() {
         data.syncStatus === 'synced'
           ? 'Gesynchroniseerd met EscapezCore.'
           : data.syncStatus === 'pending'
-            ? 'Lokaal opgeslagen — sync met EscapezCore pending (FASE 10 stub).'
+            ? 'Lokaal opgeslagen — sync met EscapezCore pending.'
             : 'Lokaal opgeslagen.';
 
       setFeedback({
         kind: data.syncStatus === 'synced' ? 'ok' : 'warn',
-        message: `${data.label}: ${data.enabled ? 'aan' : 'uit'}. Soft-reload: ${data.note}. ${syncHint}`,
+        message: `${data.label}: ${data.enabled ? 'aan' : 'uit'}. ${data.note} ${syncHint}`,
       });
     },
   });
@@ -233,8 +233,8 @@ export function SettingsPage() {
       <header className="page__header">
         <h1 className="page__title">Instellingen</h1>
         <p className="page__desc">
-          EscapezCore-modules en Pterodactyl-integratie. Soft-reload contract
-          klaar voor FASE 10 — geen RCON of secrets in de browser.
+          EscapezCore-modules en Pterodactyl-integratie. Module-toggles proxied
+          via de backend naar Core — geen RCON of secrets in de browser.
         </p>
       </header>
 
@@ -245,15 +245,16 @@ export function SettingsPage() {
           title="Geen recente EscapezCore heartbeat ontvangen via de bridge"
         >
           EscapezCore lijkt offline (geen heartbeat). Toggles worden lokaal
-          opgeslagen; sync blijft pending tot de bridge live is.
+          opgeslagen; sync blijft pending tot Core weer bereikbaar is.
         </div>
       ) : null}
 
       {coreOnline ? (
         <div className="settings-banner settings-banner--ok" role="status">
-          EscapezCore heartbeat ontvangen. Module-push naar Core gebeurt als{' '}
-          <span className="mono">CORE_API_BASE</span> op de backend staat;
-          anders blijft sync pending.
+          EscapezCore heartbeat ontvangen. Module GET/PATCH gaat via backend{' '}
+          <span className="mono">CORE_API_BASE</span> (default{' '}
+          <span className="mono">http://127.0.0.1:8765</span>); zet{' '}
+          <span className="mono">off</span> om alleen lokaal te bewaren.
         </div>
       ) : null}
 
@@ -270,8 +271,8 @@ export function SettingsPage() {
         <h2 className="settings-section-title">Modules</h2>
         <p className="settings-section-desc">
           Stabiele ids: scoreboard, tips, vote, resourcepack, reports,
-          staffchat, items. Wijzigingen vragen een soft-reload (stub tot
-          EscapezCore FASE 10).
+          staffchat, items. Wijzigingen proxied naar EscapezCore met soft-reload;
+          offline → lokaal + pending.
         </p>
 
         {modulesQuery.isPending ? (
