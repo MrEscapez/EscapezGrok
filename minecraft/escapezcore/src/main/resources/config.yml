@@ -1,6 +1,6 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 4
+config-version: 5
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
@@ -53,3 +53,6 @@ staffchat:
   # Schrijf mee naar staff_chat_logs wanneer DatabaseModule klaar is
   log-to-database: true
   format: "<dark_gray>[</dark_gray><aqua>SC</aqua><dark_gray>]</dark_gray> <white>{player}</white><gray>: </gray><white>{message}</white>"
+
+
+# Scoreboard / tips / vote-herinneringen: zie scoreboard.yml (FASE 7)

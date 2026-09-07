@@ -8,6 +8,8 @@ import be.escapezcraft.escapezcore.module.Module;
 import be.escapezcraft.escapezcore.report.ReportCommand;
 import be.escapezcraft.escapezcore.report.ReportModule;
 import be.escapezcraft.escapezcore.report.ReportStaffCommands;
+import be.escapezcraft.escapezcore.scoreboard.ScoreboardCommand;
+import be.escapezcraft.escapezcore.scoreboard.ScoreboardModule;
 import be.escapezcraft.escapezcore.staffchat.StaffChatCommand;
 import be.escapezcraft.escapezcore.staffchat.StaffChatModule;
 import org.bukkit.Bukkit;
@@ -45,9 +47,11 @@ public final class CommandModule implements Module {
     private EscapezCommand escapezCommand;
     private ReportModule reportModule;
     private StaffChatModule staffChatModule;
+    private ScoreboardModule scoreboardModule;
     private ReportCommand reportCommand;
     private ReportStaffCommands reportStaffCommands;
     private StaffChatCommand staffChatCommand;
+    private ScoreboardCommand scoreboardCommand;
 
     public CommandModule(
             EscapezCorePlugin plugin,
@@ -62,11 +66,16 @@ public final class CommandModule implements Module {
     }
 
     /**
-     * Called once after ReportModule / StaffChatModule are constructed.
+     * Called once after feature modules are constructed.
      */
-    public void wireFeatureModules(ReportModule reportModule, StaffChatModule staffChatModule) {
+    public void wireFeatureModules(
+            ReportModule reportModule,
+            StaffChatModule staffChatModule,
+            ScoreboardModule scoreboardModule
+    ) {
         this.reportModule = reportModule;
         this.staffChatModule = staffChatModule;
+        this.scoreboardModule = scoreboardModule;
     }
 
     @Override
@@ -98,6 +107,14 @@ public final class CommandModule implements Module {
         if (staffChatModule != null) {
             this.staffChatCommand = new StaffChatCommand(staffChatModule, messages);
             bind("sc", staffChatCommand, staffChatCommand);
+        }
+
+        if (scoreboardModule != null) {
+            this.scoreboardCommand = scoreboardModule.getCommand();
+            if (scoreboardCommand != null) {
+                bind("sb", scoreboardCommand, scoreboardCommand);
+            }
+            escapezCommand.setScoreboardHandler(scoreboardCommand);
         }
 
         syncAliases();
@@ -254,6 +271,10 @@ public final class CommandModule implements Module {
 
     public ReportStaffCommands getReportStaffCommands() {
         return reportStaffCommands;
+    }
+
+    public ScoreboardCommand getScoreboardCommand() {
+        return scoreboardCommand;
     }
 
     public CommandDefinition getDefinition(String key) {

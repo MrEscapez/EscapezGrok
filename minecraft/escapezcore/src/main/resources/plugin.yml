@@ -3,7 +3,7 @@ version: '${version}'
 main: be.escapezcraft.escapezcore.EscapezCorePlugin
 api-version: '1.21'
 author: birger147
-description: EscapezCraft core plugin — GUI, commands, hooks, reports, staffchat, optional database
+description: EscapezCraft core plugin — GUI, commands, hooks, reports, staffchat, scoreboard, tips, vote reminders, optional database
 website: https://example.com/escapezcraft
 softdepend:
   - LuckPerms
@@ -23,7 +23,7 @@ softdepend:
 commands:
   ec:
     description: EscapezCore hoofdcommando — opent de GUI of toont help
-    usage: /ec [help|report|admin]
+    usage: /ec [help|report|scoreboard|admin]
     aliases: [escapezcore, escapez]
   discord:
     description: Toon de Discord-link
@@ -60,6 +60,10 @@ commands:
     description: Staffchat — toggle of één bericht
     usage: /sc [bericht]
     aliases: [staffchat]
+  sb:
+    description: Scoreboard aan/uit schakelen
+    usage: /sb
+    aliases: [scoreboard]
 
 permissions:
   escapezcore.command.*:
@@ -74,6 +78,7 @@ permissions:
       escapezcore.command.regels: true
       escapezcore.command.staff: true
       escapezcore.command.report: true
+      escapezcore.scoreboard.toggle: true
   escapezcore.command.ec:
     description: Gebruik /ec
     default: true
@@ -97,6 +102,9 @@ permissions:
     default: true
   escapezcore.command.report:
     description: Gebruik /report
+    default: true
+  escapezcore.scoreboard.toggle:
+    description: Scoreboard zichtbaarheid toggle (/sb of /ec scoreboard)
     default: true
   escapezcore.report.notify:
     description: Ontvang notificaties bij nieuwe reports

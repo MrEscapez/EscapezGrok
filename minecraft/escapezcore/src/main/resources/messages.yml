@@ -7,7 +7,7 @@ no-permission: "<red>Je hebt geen toestemming voor dit commando.</red>"
 player-only: "<red>Dit commando is alleen voor spelers.</red>"
 unknown-subcommand: "<red>Onbekend subcommando. Gebruik </red><yellow>/ec help</yellow><red>.</red>"
 cooldown: "<red>Wacht nog </red><yellow>{seconds}s</yellow><red> voordat je dit opnieuw kunt gebruiken.</red>"
-reload-success: "<green>Configuratie, berichten, commands, aliases en GUI herladen.</green>"
+reload-success: "<green>Configuratie, berichten, commands, aliases, GUI, scoreboard, tips en vote-herinnering herladen.</green>"
 reload-failed: "<red>Herladen mislukt: </red><yellow>{error}</yellow>"
 admin-hidden: ""  # nooit gelekt — lege response zonder perm
 gui-opened: "<gray>Menu geopend.</gray>"
@@ -79,3 +79,11 @@ staffchat-toggle-off: "<yellow>Staffchat-modus </yellow><white>UIT</white><yello
 # --- Database (FASE 6) ---
 database-unavailable: "<yellow>Database is momenteel niet beschikbaar. Sommige functies gebruiken lokale opslag.</yellow>"
 database-not-ready: "<yellow>Database is nog niet klaar. Probeer zo opnieuw.</yellow>"
+
+
+# --- Scoreboard / tips / vote (FASE 7) ---
+scoreboard-disabled: "<red>Scoreboard is uitgeschakeld.</red>"
+scoreboard-toggle-disabled: "<yellow>Scoreboard-toggle is uitgeschakeld.</yellow>"
+scoreboard-on: "<green>Scoreboard </green><white>AAN</white><green>.</green>"
+scoreboard-off: "<yellow>Scoreboard </yellow><white>UIT</white><yellow>.</yellow>"
+vote-reminder: "<gray>Vergeet niet te stemmen! </gray><aqua><click:open_url:'{url}'><hover:show_text:'<gray>Klik om te openen</gray>'>{url}</hover></click></aqua> <gray>· of gebruik </gray><yellow>/vote</yellow>"

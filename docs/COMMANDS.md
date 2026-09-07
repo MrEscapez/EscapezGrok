@@ -18,6 +18,7 @@
 | `/reports <list\|view\|claim\|resolve\|dismiss\|note>` | Staff report management |
 | `/sc [bericht]` | Staffchat toggle (no args) or one-shot message |
 | `/discord` `/website` `/vote` `/shop` `/regels` `/staff` | Info links from `commands.yml` (example URLs only) |
+| `/sb` `/ec scoreboard` | Toggle EscapezCore sidebar (pref: PDC + optional DB) |
 
 Aliases (`dc`, `web`, `site`, `stem`, `store`, `rules`, `team`, `meld`, `staffchat`) come from `plugin.yml` / `aliases.yml` / `commands.yml` and are synced on enable + soft-reload.
 

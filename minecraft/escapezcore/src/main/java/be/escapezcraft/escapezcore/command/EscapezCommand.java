@@ -7,6 +7,7 @@ import be.escapezcraft.escapezcore.gui.item.GuiItemKeys;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.report.ReportCommand;
 import be.escapezcraft.escapezcore.report.ReportStaffCommands;
+import be.escapezcraft.escapezcore.scoreboard.ScoreboardCommand;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -41,6 +42,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
     private final CommandModule commandModule;
     private ReportCommand reportCommand;
     private ReportStaffCommands reportStaffCommands;
+    private ScoreboardCommand scoreboardCommand;
 
     public EscapezCommand(
             EscapezCorePlugin plugin,
@@ -61,6 +63,10 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
     public void setReportHandlers(ReportCommand reportCommand, ReportStaffCommands reportStaffCommands) {
         this.reportCommand = reportCommand;
         this.reportStaffCommands = reportStaffCommands;
+    }
+
+    public void setScoreboardHandler(ScoreboardCommand scoreboardCommand) {
+        this.scoreboardCommand = scoreboardCommand;
     }
 
     @Override
@@ -111,6 +117,14 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             return reportCommand.handle(sender, Arrays.copyOfRange(args, 1, args.length));
+        }
+
+        if (sub.equals("scoreboard") || sub.equals("sb")) {
+            if (scoreboardCommand == null) {
+                messages.send(sender, "scoreboard-disabled");
+                return true;
+            }
+            return scoreboardCommand.handle(sender);
         }
 
         messages.send(sender, "unknown-subcommand");
@@ -206,6 +220,8 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
         entries.add(new HelpEntry("ec help", "Toon deze help", EC_PERMISSION));
         entries.add(new HelpEntry("ec report", "Meld een speler", "escapezcore.command.report"));
         entries.add(new HelpEntry("report", "Meld een speler", "escapezcore.command.report"));
+        entries.add(new HelpEntry("ec scoreboard", "Scoreboard aan/uit", "escapezcore.scoreboard.toggle"));
+        entries.add(new HelpEntry("sb", "Scoreboard aan/uit", "escapezcore.scoreboard.toggle"));
         entries.add(new HelpEntry("sc", "Staffchat (toggle of bericht)", "escapezcore.staffchat"));
         entries.add(new HelpEntry("reports", "Beheer meldingen", "escapezcore.report.manage"));
 
@@ -259,6 +275,9 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
             opts.add("help");
             if (sender.hasPermission("escapezcore.command.report")) {
                 opts.add("report");
+            }
+            if (sender.hasPermission("escapezcore.scoreboard.toggle")) {
+                opts.add("scoreboard");
             }
             if (sender.hasPermission(ADMIN_PERMISSION)) {
                 opts.add("admin");

@@ -18,7 +18,7 @@ import java.util.logging.Level;
  */
 public final class ConfigManager implements Module {
 
-    public static final int CURRENT_CONFIG_VERSION = 4;
+    public static final int CURRENT_CONFIG_VERSION = 5;
 
     private final EscapezCorePlugin plugin;
     private FileConfiguration config;
@@ -26,6 +26,7 @@ public final class ConfigManager implements Module {
     private FileConfiguration commands;
     private FileConfiguration aliases;
     private FileConfiguration gui;
+    private FileConfiguration scoreboard;
 
     public ConfigManager(EscapezCorePlugin plugin) {
         this.plugin = plugin;
@@ -58,6 +59,7 @@ public final class ConfigManager implements Module {
         this.commands = loadMerged("commands.yml");
         this.aliases = loadMerged("aliases.yml");
         this.gui = loadMerged("gui.yml");
+        this.scoreboard = loadMerged("scoreboard.yml");
         mergeConfigVersion();
     }
 
@@ -124,5 +126,9 @@ public final class ConfigManager implements Module {
 
     public FileConfiguration getGui() {
         return gui;
+    }
+
+    public FileConfiguration getScoreboard() {
+        return scoreboard;
     }
 }

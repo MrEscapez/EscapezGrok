@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+- FASE 7: Scoreboard (no-flicker team-prefix sidebar), tips broadcast, vote reminders.
+- `scoreboard.yml` — title/lines, refresh ticks, per-world filter, toggle, tips mode/interval, vote-reminder interval.
+- PlaceholderAPI soft-dep via HookManager reflection; missing PAPI leaves or strips `%...%` gracefully.
+- Player toggle `/sb` + `/ec scoreboard`; preference via PDC + optional `player_preferences` (async, no main-thread join).
+- Vote reminder uses `commands.yml` vote.url example only; `/vote` unchanged.
+- Soft-reload refreshes scoreboard/tips/vote without Bukkit `/reload`. Version **0.1.4**, config-version **5**.
+
 ## 0.1.3
 - FASE 6: Database layer — HikariCP pool hardening (size, timeouts, optional leak detection, pool name).
 - Flyway migrations for EscapezCore-owned tables only (`escapez_schema_history`); PostgreSQL + SQLite locations.
