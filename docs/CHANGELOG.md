@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.8
+- FASE 16: Hardening — unit/smoke tests (JUnit 5 + Mockito) for cooldowns, API auth, pending event queue, ModuleManager, ModuleToggleService soft-reload scheduling (no main-thread join), and stealth `/ec admin` behavior.
+- Docs expanded: INSTALLATION, CONFIGURATION, SECURITY, DEPLOYMENT, TROUBLESHOOTING (Paper **1.21.10**, Java 21, jar **0.1.8**).
+- Secrets remain placeholders / env-only in examples (`CHANGE_ME`, empty config keys).
+- Version **0.1.8** (config-version still **8**).
+
 ## 0.1.7
 - FASE 10: Secure API bridge to Staff Panel — hybrid outbound heartbeat/events + inbound JDK HttpServer.
 - Auth: `X-Escapez-Api-Key` (`ESCAPEZ_API_KEY`) + optional HMAC (`ESCAPEZ_HMAC_SECRET`); secrets never logged.
