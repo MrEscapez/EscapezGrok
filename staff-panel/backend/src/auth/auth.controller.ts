@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { RateLimit } from '../common/rate-limit.decorator';
 import { Public } from '../rbac/public.decorator';
 import type { StaffRequest } from '../rbac/staff-request';
 import { AuthService } from './auth.service';
@@ -21,15 +22,22 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(200)
+  @RateLimit({
+    limit: 10,
+    windowMs: 60_000,
+    key: 'ip+username',
+    message: 'Te veel pogingen. Probeer later opnieuw.',
+  })
   async login(
     @Body() body: LoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const rateKey =
-      (req.ip || req.socket.remoteAddress || 'unknown') +
-      ':' +
-      (body.username || '');
+    const ip =
+      req.ip ||
+      req.socket.remoteAddress ||
+      'unknown';
+    const rateKey = `login:${ip}:${(body.username || '').trim().toLowerCase()}`;
 
     const { sessionId, session } = await this.auth.login(
       body.username,
@@ -40,7 +48,7 @@ export class AuthController {
     res.cookie(this.auth.cookieName(), sessionId, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: false,
+      secure: this.auth.cookieSecure(),
       maxAge: this.auth.cookieMaxAgeMs(),
       path: '/',
     });

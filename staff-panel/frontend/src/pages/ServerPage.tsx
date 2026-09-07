@@ -12,6 +12,7 @@ import {
   type ServerPowerAction,
   type ServerStatus,
 } from '../lib/api';
+import { HelpTip } from '../components/HelpTip';
 
 const POWER_LABELS: Record<ServerPowerAction, string> = {
   start: 'Starten',
@@ -166,7 +167,21 @@ export function ServerPage() {
   return (
     <section className="page">
       <header className="page__header">
-        <h1 className="page__title">Server</h1>
+        <h1 className="page__title page__title-row">
+          <span>Server</span>
+          <HelpTip label="Uitleg Server-pagina" wide>
+            <p>
+              Status komt van Pterodactyl en/of RCON-stubs. Power start/stop/restart
+              vereist permissie <code>server:power</code>. RCON-commando&apos;s
+              vereisen <code>server:command</code>; veilige allowlist (list/tps)
+              zonder extra bevestiging.
+            </p>
+            <p>
+              Geheimen (RCON/Ptero) staan alleen in de backend-omgeving — nooit in
+              deze UI of in Vite-env.
+            </p>
+          </HelpTip>
+        </h1>
         <p className="page__desc">
           Pterodactyl-serverlijst, power-acties en veilige RCON. Credentials
           blijven op de backend — hier zie je nooit wachtwoorden of API-keys.
@@ -184,7 +199,16 @@ export function ServerPage() {
 
       <article className="dash-card server-card--list">
         <div className="dash-card__head">
-          <h2 className="dash-card__title">Alle servers (Pterodactyl)</h2>
+          <h2 className="dash-card__title dash-card__title-row">
+            <span>Alle servers (Pterodactyl)</span>
+            <HelpTip label="Uitleg serverlijst">
+              <p>
+                Lijst via Pterodactyl Application API. Status/power per rij.
+                Acties vereisen <code>server:power</code>. Configureer credentials
+                onder Instellingen.
+              </p>
+            </HelpTip>
+          </h2>
         </div>
 
         {listQuery.isPending ? (
@@ -276,7 +300,15 @@ export function ServerPage() {
       <div className="server-grid">
         <article className="dash-card">
           <div className="dash-card__head">
-            <h2 className="dash-card__title">Power-status (default)</h2>
+            <h2 className="dash-card__title dash-card__title-row">
+              <span>Power-status (default)</span>
+              <HelpTip label="Uitleg power-status">
+                <p>
+                  Toont of de default-server online/offline is (bron: Ptero of stub).
+                  Power-knoppen vragen om bevestiging en checken <code>server:power</code>.
+                </p>
+              </HelpTip>
+            </h2>
             {status ? (
               <span className={powerPillClass(status.power)}>
                 {powerLabelNl(status.power)}
@@ -362,7 +394,15 @@ export function ServerPage() {
 
       <article className="dash-card server-card--actions">
         <div className="dash-card__head">
-          <h2 className="dash-card__title">Power-acties (default server)</h2>
+          <h2 className="dash-card__title dash-card__title-row">
+            <span>Power-acties (default server)</span>
+            <HelpTip label="Uitleg power-acties">
+              <p>
+                Start/stop/restart van de default-server via Pterodactyl Client API.
+                Bevestigingsdialoog verplicht. Permissie: <code>server:power</code>.
+              </p>
+            </HelpTip>
+          </h2>
         </div>
         <p className="dash-card__hint">
           Stoppen en herstarten vereisen bevestiging + recht{' '}
@@ -393,7 +433,16 @@ export function ServerPage() {
 
       <article className="dash-card">
         <div className="dash-card__head">
-          <h2 className="dash-card__title">RCON-commando</h2>
+          <h2 className="dash-card__title dash-card__title-row">
+              <span>RCON-commando</span>
+              <HelpTip label="Uitleg RCON">
+                <p>
+                  Stuurt een Minecraft-consolecommando via backend-RCON.
+                  Vereist <code>server:command</code>. Denylist-commando&apos;s
+                  vragen om bevestiging. Zonder RCON_* in backend: stub (503/boodschap).
+                </p>
+              </HelpTip>
+            </h2>
         </div>
         <p className="dash-card__hint">
           Veilige allowlist zonder extra bevestiging:{' '}

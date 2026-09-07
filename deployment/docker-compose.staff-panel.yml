@@ -16,5 +16,59 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ..
+      dockerfile: deployment/staff-panel/Dockerfile.backend
+    container_name: escapez-staff-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      CORS_ORIGIN: ${STAFF_CORS_ORIGIN:-http://localhost:8080}
+      SESSION_SECRET: ${SESSION_SECRET:-CHANGE_ME}
+      SESSION_COOKIE_NAME: escapez_staff_session
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_MAX_AGE_MS: "86400000"
+      STAFF_BOOTSTRAP_USERNAME: ${STAFF_BOOTSTRAP_USERNAME:-admin}
+      STAFF_BOOTSTRAP_PASSWORD: ${STAFF_BOOTSTRAP_PASSWORD:-CHANGE_ME}
+      STAFF_SEED_HELPER: ${STAFF_SEED_HELPER:-true}
+      STAFF_HELPER_USERNAME: ${STAFF_HELPER_USERNAME:-helper}
+      STAFF_HELPER_PASSWORD: ${STAFF_HELPER_PASSWORD:-CHANGE_ME}
+      BRIDGE_API_KEY: ${BRIDGE_API_KEY:-CHANGE_ME_BRIDGE_KEY}
+      CORE_API_BASE: ${CORE_API_BASE:-off}
+      CORE_API_TIMEOUT_MS: ${CORE_API_TIMEOUT_MS:-3000}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${STAFF_POSTGRES_DB:-escapezcraft_staff}
+      POSTGRES_USER: ${STAFF_POSTGRES_USER:-escapez_staff}
+      POSTGRES_PASSWORD: ${STAFF_POSTGRES_PASSWORD:-CHANGE_ME}
+      RCON_HOST: ${RCON_HOST:-}
+      RCON_PORT: ${RCON_PORT:-25575}
+      RCON_PASSWORD: ${RCON_PASSWORD:-CHANGE_ME}
+      PTERO_BASE_URL: ${PTERO_BASE_URL:-}
+      PTERO_API_KEY: ${PTERO_API_KEY:-CHANGE_ME}
+      PTERO_SERVER_ID: ${PTERO_SERVER_ID:-}
+      PTERO_CLIENT_API_KEY: ${PTERO_CLIENT_API_KEY:-}
+    volumes:
+      - staff_panel_data:/app/data
+    expose:
+      - "3000"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deployment/staff-panel/Dockerfile.frontend
+      args:
+        VITE_API_URL: /api/v1
+    container_name: escapez-staff-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${STAFF_HTTP_PORT:-8080}:80"
+
 volumes:
   staff_panel_pgdata:
+  staff_panel_data:

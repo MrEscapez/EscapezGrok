@@ -32,3 +32,6 @@ staff-panel/backend/data/rbac.json
 
 # TS incremental
 **/tsconfig*.tsbuildinfo
+
+# Staff panel deploy env
+deployment/staff-panel/.env

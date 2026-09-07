@@ -11,6 +11,7 @@ import {
   type StaffUserListItem,
 } from '../lib/api';
 import { useCan } from '../hooks/useMeQuery';
+import { HelpTip } from '../components/HelpTip';
 
 type Feedback = { kind: 'ok' | 'error'; message: string };
 
@@ -171,7 +172,20 @@ export function UsersPage() {
   return (
     <section className="page">
       <header className="page__header">
-        <h1 className="page__title">Gebruikers &amp; rollen</h1>
+        <h1 className="page__title page__title-row">
+          <span>Gebruikers &amp; rollen</span>
+          <HelpTip label="Uitleg gebruikers en RBAC" wide>
+            <p>
+              Rollen bundelen permissies (admin / moderator / helper). Effectieve
+              rechten = unie van toegewezen rollen. De UI verbergt knoppen; de
+              API weigert met 403 zonder permissie.
+            </p>
+            <p>
+              <code>users:manage</code> nodig om accounts/rollen te wijzigen.
+              Admin-rol houdt altijd de volledige catalogus.
+            </p>
+          </HelpTip>
+        </h1>
         <p className="page__desc">
           Staff-accounts, roltoewijzing en permissiematrix. Handhaving gebeurt
           altijd op de backend (403 zonder rechten).
@@ -190,7 +204,15 @@ export function UsersPage() {
       ) : null}
 
       <div className="page__card">
-        <h2 className="settings-section-title">Staff-gebruikers</h2>
+        <h2 className="settings-section-title settings-section-title-row">
+          <span>Staff-gebruikers</span>
+          <HelpTip label="Uitleg staff-gebruikers">
+            <p>
+              Accounts met bcrypt-wachtwoord en een of meer rollen. Zonder
+              <code>users:manage</code> alleen bekijken.
+            </p>
+          </HelpTip>
+        </h2>
         {usersQuery.isPending ? (
           <p className="empty-state">Laden…</p>
         ) : usersQuery.isError ? (
@@ -341,7 +363,16 @@ export function UsersPage() {
       ) : null}
 
       <div className="page__card">
-        <h2 className="settings-section-title">Rolpermissies</h2>
+                <h2 className="settings-section-title settings-section-title-row">
+                  <span>Rolpermissies</span>
+                  <HelpTip label="Uitleg rolpermissies">
+                    <p>
+                      Vink permissies aan per rol. Wijzigingen gelden voor alle users met
+                      die rol (sessies worden ververst). Helper heeft standaard geen
+                      settings:manage.
+                    </p>
+                  </HelpTip>
+                </h2>
         <p className="settings-section-desc">
           Admin heeft altijd alle permissies. Wijzigingen gelden direct voor
           actieve sessies.

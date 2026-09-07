@@ -134,3 +134,6 @@ Users API (staff cookie + `users:view` / `users:manage`):
 - PUT `/api/v1/roles/:id/permissions`
 
 `GET /auth/me` returns effective permissions (union of roles). Health + auth login/logout are public; bridge keeps API key.
+
+## FASE 16
+Tests + security hardening + production compose docs.
