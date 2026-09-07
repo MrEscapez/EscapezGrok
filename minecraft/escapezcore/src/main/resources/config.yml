@@ -1,17 +1,30 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 3
+config-version: 4
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
 database:
-  # Optioneel — plugin start altijd zonder database als enabled: false
+  # Optioneel — plugin start altijd als de DB down is (graceful degrade)
   enabled: false
+  # postgresql (prod) | sqlite (dev)
+  type: postgresql
   jdbc-url: "jdbc:postgresql://127.0.0.1:5432/escapezcraft"
   username: "escapez"
-  password: "CHANGE_ME"
-  pool-size: 5
-  # Nooit wachtwoorden loggen
+  # Laat leeg en zet ESCAPEZ_DB_PASSWORD in de omgeving (nooit loggen).
+  # Optionele overrides: ESCAPEZ_DB_URL, ESCAPEZ_DB_USER
+  password: ""
+  # Alleen bij type: sqlite — bestand in plugin data folder
+  sqlite-file: "escapezcore.db"
+  pool:
+    name: EscapezCore-Hikari
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout-ms: 10000
+    idle-timeout-ms: 600000
+    max-lifetime-ms: 1800000
+    # 0 = uit; bv. 60000 voor lekdetectie tijdens debug
+    leak-detection-threshold-ms: 0
 
 debug: false
 
@@ -22,10 +35,10 @@ cooldowns:
 gui:
   open-on-ec: true
 
-# Player reports (FASE 5)
+# Player reports (FASE 5+)
 reports:
   enabled: true
-  # auto = PostgreSQL wanneer DatabaseModule actief is, anders SQLite, anders file
+  # auto = centrale DatabaseModule (na Flyway) wanneer enabled+ready; anders lokale SQLite; anders YAML
   # Opties: auto | postgres | sqlite | file
   persistence: auto
   cooldown-seconds: 60
@@ -33,8 +46,10 @@ reports:
   list-page-size: 10
   notify-permission: escapezcore.report.notify
 
-# Staffchat (FASE 5)
+# Staffchat (FASE 5+)
 staffchat:
   enabled: true
   log-to-console: true
+  # Schrijf mee naar staff_chat_logs wanneer DatabaseModule klaar is
+  log-to-database: true
   format: "<dark_gray>[</dark_gray><aqua>SC</aqua><dark_gray>]</dark_gray> <white>{player}</white><gray>: </gray><white>{message}</white>"

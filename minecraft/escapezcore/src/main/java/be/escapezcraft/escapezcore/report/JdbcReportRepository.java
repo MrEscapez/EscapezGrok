@@ -22,6 +22,9 @@ import java.util.logging.Level;
 
 /**
  * JDBC report store for PostgreSQL (Hikari) or SQLite. Prepared statements only; async I/O.
+ * <p>
+ * When {@code schemaManagedExternally} is true (Flyway via DatabaseModule), {@link #initialize()}
+ * only verifies connectivity / table presence — it does not create DDL.
  */
 public final class JdbcReportRepository implements ReportRepository {
 
@@ -33,12 +36,23 @@ public final class JdbcReportRepository implements ReportRepository {
     private final EscapezCorePlugin plugin;
     private final DataSource dataSource;
     private final Dialect dialect;
+    private final boolean schemaManagedExternally;
     private final Executor async;
 
     public JdbcReportRepository(EscapezCorePlugin plugin, DataSource dataSource, Dialect dialect) {
+        this(plugin, dataSource, dialect, false);
+    }
+
+    public JdbcReportRepository(
+            EscapezCorePlugin plugin,
+            DataSource dataSource,
+            Dialect dialect,
+            boolean schemaManagedExternally
+    ) {
         this.plugin = plugin;
         this.dataSource = dataSource;
         this.dialect = dialect;
+        this.schemaManagedExternally = schemaManagedExternally;
         this.async = runnable -> Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
     }
 
@@ -50,47 +64,57 @@ public final class JdbcReportRepository implements ReportRepository {
     @Override
     public CompletableFuture<Void> initialize() {
         return supplyAsync(connection -> {
-            try (Statement st = connection.createStatement()) {
-                if (dialect == Dialect.POSTGRES) {
-                    st.execute("""
-                            CREATE TABLE IF NOT EXISTS escapez_reports (
-                              id BIGSERIAL PRIMARY KEY,
-                              reporter_uuid UUID NOT NULL,
-                              reporter_name VARCHAR(16) NOT NULL,
-                              target_uuid UUID NOT NULL,
-                              target_name VARCHAR(16) NOT NULL,
-                              reason TEXT NOT NULL,
-                              status VARCHAR(32) NOT NULL,
-                              staff_notes TEXT,
-                              claimed_by_uuid UUID,
-                              claimed_by_name VARCHAR(16),
-                              created_at TIMESTAMPTZ NOT NULL,
-                              updated_at TIMESTAMPTZ NOT NULL,
-                              resolved_at TIMESTAMPTZ
-                            )
-                            """);
-                    st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_status ON escapez_reports(status)");
-                    st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_created ON escapez_reports(created_at DESC)");
-                } else {
-                    st.execute("""
-                            CREATE TABLE IF NOT EXISTS escapez_reports (
-                              id INTEGER PRIMARY KEY AUTOINCREMENT,
-                              reporter_uuid TEXT NOT NULL,
-                              reporter_name TEXT NOT NULL,
-                              target_uuid TEXT NOT NULL,
-                              target_name TEXT NOT NULL,
-                              reason TEXT NOT NULL,
-                              status TEXT NOT NULL,
-                              staff_notes TEXT,
-                              claimed_by_uuid TEXT,
-                              claimed_by_name TEXT,
-                              created_at TEXT NOT NULL,
-                              updated_at TEXT NOT NULL,
-                              resolved_at TEXT
-                            )
-                            """);
-                    st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_status ON escapez_reports(status)");
-                    st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_created ON escapez_reports(created_at DESC)");
+            try {
+                if (schemaManagedExternally) {
+                    // Flyway already created escapez_reports — sanity-check only.
+                    try (Statement st = connection.createStatement();
+                         ResultSet rs = st.executeQuery("SELECT 1 FROM escapez_reports WHERE 1=0")) {
+                        // touch metadata
+                    }
+                    return null;
+                }
+                try (Statement st = connection.createStatement()) {
+                    if (dialect == Dialect.POSTGRES) {
+                        st.execute("""
+                                CREATE TABLE IF NOT EXISTS escapez_reports (
+                                  id BIGSERIAL PRIMARY KEY,
+                                  reporter_uuid UUID NOT NULL,
+                                  reporter_name VARCHAR(16) NOT NULL,
+                                  target_uuid UUID NOT NULL,
+                                  target_name VARCHAR(16) NOT NULL,
+                                  reason TEXT NOT NULL,
+                                  status VARCHAR(32) NOT NULL,
+                                  staff_notes TEXT,
+                                  claimed_by_uuid UUID,
+                                  claimed_by_name VARCHAR(16),
+                                  created_at TIMESTAMPTZ NOT NULL,
+                                  updated_at TIMESTAMPTZ NOT NULL,
+                                  resolved_at TIMESTAMPTZ
+                                )
+                                """);
+                        st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_status ON escapez_reports(status)");
+                        st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_created ON escapez_reports(created_at DESC)");
+                    } else {
+                        st.execute("""
+                                CREATE TABLE IF NOT EXISTS escapez_reports (
+                                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  reporter_uuid TEXT NOT NULL,
+                                  reporter_name TEXT NOT NULL,
+                                  target_uuid TEXT NOT NULL,
+                                  target_name TEXT NOT NULL,
+                                  reason TEXT NOT NULL,
+                                  status TEXT NOT NULL,
+                                  staff_notes TEXT,
+                                  claimed_by_uuid TEXT,
+                                  claimed_by_name TEXT,
+                                  created_at TEXT NOT NULL,
+                                  updated_at TEXT NOT NULL,
+                                  resolved_at TEXT
+                                )
+                                """);
+                        st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_status ON escapez_reports(status)");
+                        st.execute("CREATE INDEX IF NOT EXISTS idx_escapez_reports_created ON escapez_reports(created_at DESC)");
+                    }
                 }
             } catch (SQLException ex) {
                 throw new RuntimeException("Report schema init failed", ex);

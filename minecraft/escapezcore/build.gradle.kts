@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "be.escapezcraft"
-version = "0.1.2"
+version = "0.1.3"
 description = "EscapezCore — core Paper plugin for EscapezCraft"
 
 java {
@@ -23,10 +23,14 @@ dependencies {
     // Chosen because it is a stable 1.21.x artifact on repo.papermc.io matching api-version 1.21 + Java 21.
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
 
-    // HikariCP for optional async PostgreSQL pool
+    // HikariCP connection pool
     implementation("com.zaxxer:HikariCP:5.1.0")
-    // Embedded SQLite fallback for reports when PostgreSQL is disabled
+    // PostgreSQL driver (prod) + SQLite (dev / reports fallback)
+    implementation("org.postgresql:postgresql:42.7.4")
     implementation("org.xerial:sqlite-jdbc:3.46.1.3")
+    // Flyway migrations (EscapezCore-owned schema only)
+    implementation("org.flywaydb:flyway-core:10.17.0")
+    implementation("org.flywaydb:flyway-database-postgresql:10.17.0")
 }
 
 tasks.processResources {
@@ -40,7 +44,7 @@ tasks.processResources {
 tasks.jar {
     archiveBaseName.set("EscapezCore")
     archiveVersion.set(project.version.toString())
-    // Bundle implementation deps (HikariCP, SQLite) into the plugin jar
+    // Bundle implementation deps (HikariCP, drivers, Flyway) into the plugin jar
     from({
         configurations.runtimeClasspath.get()
             .filter { it.name.endsWith(".jar") }
