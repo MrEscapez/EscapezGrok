@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6
+- FASE 9: Plugin hooks / soft-dep adapters — `HookManager` + `integrations.yml` (enable/disable per integration).
+- Adapters: LuckPerms / Vault / PlaceholderAPI (compileOnly public APIs); ItemsAdder / Nexo (reflection); LiteBans, WorldGuard, CoreProtect, Lands, McMMO, ExcellentCrates, MythicMobs, ModelEngine, CMI, ProtocolLib, ViaVersion, WorldEdit (detect-only).
+- `getAdapter(Class)` / `isAvailable` patterns; soft-reload rescans integrations; `/ec admin hooks` status (stealth).
+- IconResolver + PlaceholderResolver use adapters; absent plugins degrade gracefully (Dutch logs).
+- Version **0.1.6**, config-version **7**.
+
 ## 0.1.5
 - FASE 8: Resource pack module (`resourcepack.yml`) — enable/required/url/SHA1, join apply, Paper `PlayerResourcePackStatusEvent`, Dutch prompt/decline/fail/success (+ kick when required).
 - Soft-reload safe via `/ec admin reload`; placeholder `example.com` URLs are not sent.

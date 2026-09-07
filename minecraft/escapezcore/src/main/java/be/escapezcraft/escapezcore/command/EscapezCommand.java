@@ -3,6 +3,7 @@ package be.escapezcraft.escapezcore.command;
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.gui.GuiModule;
+import be.escapezcraft.escapezcore.hooks.PluginAdapter;
 import be.escapezcraft.escapezcore.items.ItemAdminCommands;
 import be.escapezcraft.escapezcore.items.ItemsModule;
 import be.escapezcraft.escapezcore.messages.MessagesService;
@@ -141,7 +142,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 guiModule.openAdmin(player);
                 return true;
             }
-            sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|debug|report></gray>"));
+            sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|hooks|debug|report></gray>"));
             return true;
         }
 
@@ -182,6 +183,13 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 return itemsModule.getAdminCommands().handle(
                         sender, Arrays.copyOfRange(args, 1, args.length));
             }
+            case "hooks" -> {
+                if (!sender.hasPermission(ADMIN_PERMISSION)) {
+                    messages.send(sender, "no-permission");
+                    return true;
+                }
+                return handleHooksStatus(sender);
+            }
             case "debug" -> {
                 if (!sender.hasPermission(ADMIN_PERMISSION)) {
                     messages.send(sender, "no-permission");
@@ -202,7 +210,32 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 }
                 return reportStaffCommands.handle(sender, Arrays.copyOfRange(args, 1, args.length));
             }
-            default -> sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|debug|report></gray>"));
+            default -> sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|hooks|debug|report></gray>"));
+        }
+        return true;
+    }
+
+
+    private boolean handleHooksStatus(CommandSender sender) {
+        messages.send(sender, "hooks-header");
+        for (PluginAdapter adapter : plugin.getHookManager().adapters()) {
+            String cfg = adapter.isConfigEnabled() ? "aan" : "uit";
+            String present = adapter.isPresent() ? "ja" : "nee";
+            String active = adapter.isAvailable() ? "actief" : "inactief";
+            String mode = switch (adapter.mode()) {
+                case COMPILE_ONLY -> "compileOnly";
+                case REFLECTION -> "reflection";
+                case DETECT_ONLY -> "detect";
+            };
+            messages.send(sender, "hooks-line", Map.of(
+                    "plugin", adapter.pluginName(),
+                    "id", adapter.id(),
+                    "config", cfg,
+                    "present", present,
+                    "active", active,
+                    "mode", mode,
+                    "status", adapter.statusLabel()
+            ));
         }
         return true;
     }
@@ -232,7 +265,8 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
 
         // Admin help ONLY if permitted — never leak otherwise
         if (sender.hasPermission(ADMIN_PERMISSION)) {
-            entries.add(new HelpEntry("ec admin", "Admin-tools (reload, gui, item, debug, report)", ADMIN_PERMISSION));
+            entries.add(new HelpEntry("ec admin", "Admin-tools (reload, gui, item, hooks, debug, report)", ADMIN_PERMISSION));
+            entries.add(new HelpEntry("ec admin hooks", "Soft-dep integraties status", ADMIN_PERMISSION));
             entries.add(new HelpEntry("ec admin item", "Custom items (list/info/give/get/gui)", ItemAdminCommands.PERM_ITEM));
             entries.add(new HelpEntry("ec admin gui", "GUI editor skeleton (list/open/save)", "escapezcore.admin.gui"));
             entries.add(new HelpEntry("ec admin report", "Report-beheer (list/view/claim/…)", ADMIN_PERMISSION));
@@ -299,6 +333,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
             }
             if (sender.hasPermission(ADMIN_PERMISSION)) {
                 adminOpts.add("item");
+                adminOpts.add("hooks");
                 adminOpts.add("debug");
                 adminOpts.add("report");
             }

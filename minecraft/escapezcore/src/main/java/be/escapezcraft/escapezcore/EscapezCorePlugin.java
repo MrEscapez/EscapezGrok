@@ -43,7 +43,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
         this.configManager = new ConfigManager(this);
         this.messagesService = new MessagesService(this, configManager);
-        this.hookManager = new HookManager(this);
+        this.hookManager = new HookManager(this, configManager);
         this.databaseModule = new DatabaseModule(this, configManager);
         this.guiModule = new GuiModule(this, configManager, messagesService, hookManager);
         this.commandModule = new CommandModule(this, configManager, messagesService, guiModule);
@@ -92,7 +92,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
     /**
      * Safe soft-reload: messages, commands, aliases, gui, scoreboard/tips/vote,
-     * resourcepack, items, config — never Bukkit.reload().
+     * resourcepack, items, integrations, config — never Bukkit.reload().
      */
     public void softReload() throws Exception {
         moduleManager.reloadSafe();

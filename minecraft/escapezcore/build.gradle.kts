@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "be.escapezcraft"
-version = "0.1.5"
+version = "0.1.6"
 description = "EscapezCore — core Paper plugin for EscapezCraft"
 
 java {
@@ -16,12 +16,27 @@ repositories {
         name = "papermc"
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
+    maven {
+        name = "jitpack"
+        url = uri("https://jitpack.io")
+    }
+    maven {
+        name = "placeholderapi"
+        url = uri("https://repo.helpch.at/releases/")
+    }
 }
 
 dependencies {
     // Paper API 1.21.4 — compileOnly (provided by server at runtime)
     // Chosen because it is a stable 1.21.x artifact on repo.papermc.io matching api-version 1.21 + Java 21.
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+
+    // Soft-dep public APIs (compileOnly — never shaded into the plugin jar)
+    compileOnly("net.luckperms:api:5.5")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1") {
+        exclude(group = "org.bukkit", module = "bukkit")
+    }
+    compileOnly("me.clip:placeholderapi:2.11.6")
 
     // HikariCP connection pool
     implementation("com.zaxxer:HikariCP:5.1.0")
