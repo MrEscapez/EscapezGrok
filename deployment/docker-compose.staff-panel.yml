@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: escapez-staff-postgres
+    environment:
+      POSTGRES_DB: ${STAFF_POSTGRES_DB:-escapezcraft_staff}
+      POSTGRES_USER: ${STAFF_POSTGRES_USER:-escapez_staff}
+      POSTGRES_PASSWORD: ${STAFF_POSTGRES_PASSWORD:-CHANGE_ME}
+    ports:
+      - "${STAFF_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - staff_panel_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  staff_panel_pgdata:
