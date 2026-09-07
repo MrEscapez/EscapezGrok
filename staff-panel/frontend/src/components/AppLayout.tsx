@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useMeQuery } from '../hooks/useMeQuery';
+import { logout } from '../lib/api';
 
 const NAV_ITEMS: { to: string; label: string }[] = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -16,6 +19,20 @@ const NAV_ITEMS: { to: string; label: string }[] = [
 
 export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const meQuery = useMeQuery();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      queryClient.setQueryData(['auth', 'me'], null);
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      navigate('/login', { replace: true });
+    },
+  });
+
+  const username = meQuery.data?.username ?? '…';
 
   return (
     <div className="app-shell">
@@ -65,7 +82,20 @@ export function AppLayout() {
           >
             ☰
           </button>
-          <span className="topbar__hint">Dark neon · FASE 11–12 skeleton</span>
+          <span className="topbar__hint">Dark neon · Staff Panel</span>
+          <div className="topbar__user">
+            <span className="topbar__username" title="Ingelogde gebruiker">
+              {username}
+            </span>
+            <button
+              type="button"
+              className="topbar__logout"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              {logoutMutation.isPending ? 'Bezig…' : 'Uitloggen'}
+            </button>
+          </div>
         </header>
         <main className="content">
           <Outlet />

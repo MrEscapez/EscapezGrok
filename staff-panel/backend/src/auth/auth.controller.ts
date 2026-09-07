@@ -10,11 +10,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-
-class LoginDto {
-  username!: string;
-  password!: string;
-}
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -24,11 +20,18 @@ export class AuthController {
   @HttpCode(200)
   async login(
     @Body() body: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const rateKey =
+      (req.ip || req.socket.remoteAddress || 'unknown') +
+      ':' +
+      (body.username || '');
+
     const { sessionId, session } = await this.auth.login(
-      body.username ?? '',
-      body.password ?? '',
+      body.username,
+      body.password,
+      rateKey,
     );
 
     res.cookie(this.auth.cookieName(), sessionId, {

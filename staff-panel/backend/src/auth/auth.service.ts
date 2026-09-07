@@ -1,5 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { ALL_PERMISSIONS, Permission } from '../rbac/permissions';
 
 export interface StaffSession {
@@ -10,37 +16,94 @@ export interface StaffSession {
 }
 
 /**
- * Skeleton auth service.
- * - Password verify is stubbed (accepts any non-empty password for local skeleton).
- * - Structure is ready for bcrypt/argon2id later (bcrypt dependency present).
- * - Sessions are in-memory stubs; real store (Redis/Postgres) comes later.
- * - Cookies are HttpOnly via controller — never JWT in localStorage.
+ * Local-demo auth: HttpOnly cookie sessions + bcrypt against bootstrap stub.
+ * No JWT in localStorage. Real user store (Postgres) comes later.
  */
 @Injectable()
-export class AuthService {
-  /** In-memory session store — skeleton only */
+export class AuthService implements OnModuleInit {
   private readonly sessions = new Map<string, StaffSession>();
+  private bootstrapUsername = 'admin';
+  private bootstrapPasswordHash = '';
+
+  /** Simple in-memory rate limit: IP/username → attempts */
+  private readonly loginAttempts = new Map<
+    string,
+    { count: number; resetAt: number }
+  >();
+  private readonly maxAttempts = 10;
+  private readonly windowMs = 60_000;
 
   constructor(private readonly config: ConfigService) {}
 
-  /**
-   * Stub password verification.
-   * Production: compare with bcrypt/argon2id hash from DB.
-   */
-  async verifyPasswordStub(
-    _username: string,
+  async onModuleInit(): Promise<void> {
+    this.bootstrapUsername = this.config.get<string>(
+      'STAFF_BOOTSTRAP_USERNAME',
+      'admin',
+    );
+    const plaintext = this.config.get<string>(
+      'STAFF_BOOTSTRAP_PASSWORD',
+      'CHANGE_ME',
+    );
+    // Hash once at boot into memory — do not commit real secrets
+    this.bootstrapPasswordHash = await bcrypt.hash(plaintext, 10);
+  }
+
+  assertNotRateLimited(key: string): void {
+    const now = Date.now();
+    const entry = this.loginAttempts.get(key);
+    if (!entry || now > entry.resetAt) {
+      this.loginAttempts.set(key, {
+        count: 0,
+        resetAt: now + this.windowMs,
+      });
+      return;
+    }
+    if (entry.count >= this.maxAttempts) {
+      throw new UnauthorizedException(
+        'Te veel pogingen. Probeer later opnieuw.',
+      );
+    }
+  }
+
+  private recordAttempt(key: string, success: boolean): void {
+    const now = Date.now();
+    const entry = this.loginAttempts.get(key) ?? {
+      count: 0,
+      resetAt: now + this.windowMs,
+    };
+    if (now > entry.resetAt) {
+      entry.count = 0;
+      entry.resetAt = now + this.windowMs;
+    }
+    if (success) {
+      this.loginAttempts.delete(key);
+      return;
+    }
+    entry.count += 1;
+    this.loginAttempts.set(key, entry);
+  }
+
+  async verifyBootstrapCredentials(
+    username: string,
     password: string,
   ): Promise<boolean> {
-    // Skeleton: require non-empty password. Replace with bcrypt.compare / argon2.verify.
-    void _username;
-    return Boolean(password && password.length > 0);
+    if (!username || !password) return false;
+    if (username !== this.bootstrapUsername) {
+      // Still run compare to keep timing roughly similar
+      await bcrypt.compare(password, this.bootstrapPasswordHash);
+      return false;
+    }
+    return bcrypt.compare(password, this.bootstrapPasswordHash);
   }
 
   async login(
     username: string,
     password: string,
+    rateKey = 'global',
   ): Promise<{ sessionId: string; session: StaffSession }> {
-    const ok = await this.verifyPasswordStub(username, password);
+    this.assertNotRateLimited(rateKey);
+    const ok = await this.verifyBootstrapCredentials(username, password);
+    this.recordAttempt(rateKey, ok);
     if (!ok) {
       throw new UnauthorizedException('Ongeldige inloggegevens');
     }
@@ -49,7 +112,6 @@ export class AuthService {
     const session: StaffSession = {
       userId: `stub-${username}`,
       username,
-      // Skeleton: grant all permissions for local UI wiring
       permissions: [...ALL_PERMISSIONS],
       createdAt: new Date().toISOString(),
     };
@@ -82,7 +144,6 @@ export class AuthService {
   }
 
   private createSessionId(): string {
-    // Skeleton random id — replace with crypto.randomUUID / secure store later
-    return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+    return `sess_${randomUUID()}`;
   }
 }
