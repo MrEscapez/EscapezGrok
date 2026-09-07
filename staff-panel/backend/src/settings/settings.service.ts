@@ -24,8 +24,20 @@ type StoredModule = {
   source: ModuleSource;
 };
 
-const SOFT_RELOAD_NOTE =
-  'soft-reload gevraagd (stub tot EscapezCore FASE 10 live is)';
+type CorePushResult = {
+  source: ModuleSource;
+  syncStatus: SyncStatus;
+  note: string;
+};
+
+/** Default EscapezCore inbound listener (docs/API.md). */
+const DEFAULT_CORE_API_BASE = 'http://127.0.0.1:8765';
+
+const NOTE_CORE_SOFT_RELOAD = 'Soft-reload uitgevoerd via EscapezCore.';
+const NOTE_CORE_DISABLED =
+  'Lokaal opgeslagen. Panel→Core proxy uitgeschakeld (CORE_API_BASE=off).';
+const NOTE_CORE_OFFLINE =
+  'Lokaal opgeslagen. EscapezCore onbereikbaar (timeout/offline) — sync pending.';
 
 @Injectable()
 export class SettingsService implements OnModuleInit {
@@ -43,7 +55,15 @@ export class SettingsService implements OnModuleInit {
     this.loadOrSeed();
   }
 
-  listModules(): ModuleStatus[] {
+  /**
+   * Staff Settings list: prefer live Core GET /api/v1/modules.
+   * On failure/timeout/disabled → local modules.json (source local|pending).
+   */
+  async listModules(): Promise<ModuleStatus[]> {
+    const fromCore = await this.tryFetchFromCore();
+    if (fromCore) {
+      return fromCore;
+    }
     return MODULE_CATALOG.map((meta) => this.toStatus(meta.id));
   }
 
@@ -61,6 +81,8 @@ export class SettingsService implements OnModuleInit {
 
     const stored = this.byId.get(id)!;
     stored.enabled = enabled;
+    // Always persist local first; sync status updated after Core proxy attempt.
+    this.persist();
 
     const push = await this.tryPushToCore(id, enabled);
     stored.source = push.source;
@@ -70,13 +92,13 @@ export class SettingsService implements OnModuleInit {
       ...this.toStatus(id),
       syncStatus: push.syncStatus,
       softReload: true,
-      note: SOFT_RELOAD_NOTE,
+      note: push.note,
     };
   }
 
-  /** EscapezCore may later pull / push; today returns local catalog status. */
-  listForBridge(): { modules: ModuleStatus[] } {
-    return { modules: this.listModules() };
+  /** EscapezCore / bridge consumers — same merge as Settings GET. */
+  async listForBridge(): Promise<{ modules: ModuleStatus[] }> {
+    return { modules: await this.listModules() };
   }
 
   private toStatus(id: ModuleId): ModuleStatus {
@@ -101,7 +123,10 @@ export class SettingsService implements OnModuleInit {
       loaded = null;
     }
 
-    const fromFile = new Map<string, { enabled: boolean; source: ModuleSource }>();
+    const fromFile = new Map<
+      string,
+      { enabled: boolean; source: ModuleSource }
+    >();
     if (loaded?.modules && Array.isArray(loaded.modules)) {
       for (const row of loaded.modules) {
         if (!row || !isModuleId(row.id)) continue;
@@ -145,48 +170,174 @@ export class SettingsService implements OnModuleInit {
   }
 
   /**
-   * Panel → EscapezCore push stub.
-   * When CORE_API_BASE is set: PATCH {CORE}/api/v1/modules/:id {enabled}.
-   * On 503/timeout/error → local + pending.
-   * When Core not configured → local persist + pending.
+   * Resolve EscapezCore base URL.
+   * - unset → http://127.0.0.1:8765
+   * - CORE_API_BASE=off|disabled|false|none (or empty) → proxy disabled
+   * - otherwise use the configured URL (trailing slash stripped)
+   */
+  private resolveCoreApiBase(): string | null {
+    const raw = this.config.get<string>('CORE_API_BASE');
+    if (raw === undefined || raw === null) {
+      return DEFAULT_CORE_API_BASE;
+    }
+    const trimmed = String(raw).trim();
+    if (!trimmed || /^(off|disabled|false|none)$/i.test(trimmed)) {
+      return null;
+    }
+    return trimmed.replace(/\/$/, '');
+  }
+
+  private coreTimeoutMs(): number {
+    const n = Number(this.config.get<string>('CORE_API_TIMEOUT_MS', '3000'));
+    return Number.isFinite(n) && n > 0 ? n : 3000;
+  }
+
+  private coreHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      'X-Escapez-Api-Key': getBridgeApiKey(this.config),
+    };
+  }
+
+  private async fetchCore(
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.coreTimeoutMs());
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * GET {CORE}/api/v1/modules → map to panel ModuleStatus with Dutch catalog labels.
+   * Returns null when Core is disabled/offline/errors.
+   */
+  private async tryFetchFromCore(): Promise<ModuleStatus[] | null> {
+    const base = this.resolveCoreApiBase();
+    if (!base) {
+      return null;
+    }
+
+    const url = `${base}/api/v1/modules`;
+    try {
+      const res = await this.fetchCore(url, {
+        method: 'GET',
+        headers: this.coreHeaders(),
+      });
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = (await res.json()) as {
+        modules?: Array<{
+          id?: unknown;
+          enabled?: unknown;
+          name?: unknown;
+        }>;
+      };
+      if (!data?.modules || !Array.isArray(data.modules)) {
+        return null;
+      }
+
+      const coreById = new Map<string, boolean>();
+      for (const row of data.modules) {
+        if (!row || typeof row.id !== 'string' || !isModuleId(row.id)) {
+          continue;
+        }
+        coreById.set(row.id, !!row.enabled);
+      }
+      if (coreById.size === 0) {
+        return null;
+      }
+
+      let dirty = false;
+      for (const meta of MODULE_CATALOG) {
+        const stored = this.byId.get(meta.id)!;
+        if (coreById.has(meta.id)) {
+          const enabled = coreById.get(meta.id)!;
+          if (stored.enabled !== enabled || stored.source !== 'core') {
+            stored.enabled = enabled;
+            stored.source = 'core';
+            dirty = true;
+          }
+        }
+      }
+      if (dirty) {
+        this.persist();
+      }
+
+      return MODULE_CATALOG.map((meta) => ({
+        id: meta.id,
+        label: meta.label,
+        enabled: this.byId.get(meta.id)!.enabled,
+        source: (coreById.has(meta.id)
+          ? 'core'
+          : this.byId.get(meta.id)!.source) as ModuleSource,
+      }));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Panel → EscapezCore push.
+   * PATCH {CORE}/api/v1/modules/:id {enabled} with X-Escapez-Api-Key (never Bearer).
+   * On success → source=core, syncStatus=synced, soft-reload note from Core if present.
+   * On failure → local already saved + pending + clear UI-facing note.
    */
   private async tryPushToCore(
     id: ModuleId,
     enabled: boolean,
-  ): Promise<{ source: ModuleSource; syncStatus: SyncStatus }> {
-    const base = (this.config.get<string>('CORE_API_BASE') ?? '').trim();
+  ): Promise<CorePushResult> {
+    const base = this.resolveCoreApiBase();
     if (!base) {
-      return { source: 'pending', syncStatus: 'pending' };
+      return {
+        source: 'pending',
+        syncStatus: 'pending',
+        note: NOTE_CORE_DISABLED,
+      };
     }
 
-    const url = `${base.replace(/\/$/, '')}/api/v1/modules/${id}`;
-    const key = getBridgeApiKey(this.config);
-    const controller = new AbortController();
-    const timeoutMs = Number(
-      this.config.get<string>('CORE_API_TIMEOUT_MS', '3000'),
-    );
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
+    const url = `${base}/api/v1/modules/${id}`;
     try {
-      const res = await fetch(url, {
+      const res = await this.fetchCore(url, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Escapez-Api-Key': key,
-        },
+        headers: this.coreHeaders(),
         body: JSON.stringify({ enabled }),
-        signal: controller.signal,
       });
 
       if (res.ok) {
-        return { source: 'core', syncStatus: 'synced' };
+        let note = NOTE_CORE_SOFT_RELOAD;
+        try {
+          const body = (await res.json()) as Record<string, unknown>;
+          const fromCore =
+            pickString(body.note) ??
+            pickString(body.softReloadNote) ??
+            pickString(body.message);
+          if (fromCore) {
+            note = fromCore;
+          }
+        } catch {
+          // Core may return empty body; keep default note.
+        }
+        return { source: 'core', syncStatus: 'synced', note };
       }
-      // 503 / other → keep local, mark pending
-      return { source: 'pending', syncStatus: 'pending' };
+
+      return {
+        source: 'pending',
+        syncStatus: 'pending',
+        note: `Lokaal opgeslagen. EscapezCore antwoordde HTTP ${res.status} — sync pending.`,
+      };
     } catch {
-      return { source: 'pending', syncStatus: 'pending' };
-    } finally {
-      clearTimeout(timer);
+      return {
+        source: 'pending',
+        syncStatus: 'pending',
+        note: NOTE_CORE_OFFLINE,
+      };
     }
   }
 }
@@ -196,4 +347,8 @@ function normalizeSource(value: unknown): ModuleSource {
     return value;
   }
   return 'local';
+}
+
+function pickString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }

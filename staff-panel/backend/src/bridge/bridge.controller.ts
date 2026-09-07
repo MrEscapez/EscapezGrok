@@ -77,7 +77,7 @@ export class BridgeController {
    * Auth: X-Escapez-Api-Key required.
    */
   @Get('modules')
-  modules(@Req() req: Request) {
+  async modules(@Req() req: Request) {
     this.assertBridgeKey(req);
     return this.settings.listForBridge();
   }
