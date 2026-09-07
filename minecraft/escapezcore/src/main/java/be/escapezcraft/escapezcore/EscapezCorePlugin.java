@@ -8,7 +8,10 @@ import be.escapezcraft.escapezcore.hooks.HookManager;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.ModuleManager;
 import be.escapezcraft.escapezcore.report.ReportModule;
+import be.escapezcraft.escapezcore.scoreboard.ScoreboardModule;
 import be.escapezcraft.escapezcore.staffchat.StaffChatModule;
+import be.escapezcraft.escapezcore.tips.TipsModule;
+import be.escapezcraft.escapezcore.vote.VoteReminderModule;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -25,6 +28,9 @@ public final class EscapezCorePlugin extends JavaPlugin {
     private GuiModule guiModule;
     private ReportModule reportModule;
     private StaffChatModule staffChatModule;
+    private ScoreboardModule scoreboardModule;
+    private TipsModule tipsModule;
+    private VoteReminderModule voteReminderModule;
     private boolean debug;
 
     @Override
@@ -40,9 +46,13 @@ public final class EscapezCorePlugin extends JavaPlugin {
         this.reportModule = new ReportModule(
                 this, configManager, messagesService, databaseModule, commandModule.getCooldownService());
         this.staffChatModule = new StaffChatModule(this, configManager, messagesService, databaseModule);
+        this.scoreboardModule = new ScoreboardModule(
+                this, configManager, messagesService, hookManager, databaseModule);
+        this.tipsModule = new TipsModule(this, configManager, messagesService);
+        this.voteReminderModule = new VoteReminderModule(this, configManager, messagesService);
 
-        // Give CommandModule access to report/staffchat after construction
-        this.commandModule.wireFeatureModules(reportModule, staffChatModule);
+        // Give CommandModule access to feature modules after construction
+        this.commandModule.wireFeatureModules(reportModule, staffChatModule, scoreboardModule);
 
         moduleManager.register(configManager);
         moduleManager.register(messagesService);
@@ -52,6 +62,9 @@ public final class EscapezCorePlugin extends JavaPlugin {
         // Reports / staffchat before commands so repositories & listeners are ready at bind time
         moduleManager.register(reportModule);
         moduleManager.register(staffChatModule);
+        moduleManager.register(scoreboardModule);
+        moduleManager.register(tipsModule);
+        moduleManager.register(voteReminderModule);
         moduleManager.register(commandModule);
 
         moduleManager.enableAll();
@@ -69,7 +82,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
     }
 
     /**
-     * Safe soft-reload: messages, commands, aliases, gui, config — never Bukkit.reload().
+     * Safe soft-reload: messages, commands, aliases, gui, scoreboard/tips/vote, config — never Bukkit.reload().
      */
     public void softReload() throws Exception {
         moduleManager.reloadSafe();
@@ -110,6 +123,18 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
     public StaffChatModule getStaffChatModule() {
         return staffChatModule;
+    }
+
+    public ScoreboardModule getScoreboardModule() {
+        return scoreboardModule;
+    }
+
+    public TipsModule getTipsModule() {
+        return tipsModule;
+    }
+
+    public VoteReminderModule getVoteReminderModule() {
+        return voteReminderModule;
     }
 
     public boolean isDebug() {

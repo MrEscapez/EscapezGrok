@@ -1,4 +1,4 @@
-# EscapezCraft (FASE 6 Database) — EscapezGrok monorepo
+# EscapezCraft (FASE 7 Scoreboard/Tips/Vote) — EscapezGrok monorepo
 
 Monorepo for EscapezCraft Paper core plugin, staff panel stubs, resource pack, database notes, and deployment examples.
 
@@ -19,7 +19,7 @@ Monorepo for EscapezCraft Paper core plugin, staff panel stubs, resource pack, d
 ```bash
 cd minecraft/escapezcore
 ./gradlew build
-# JAR: build/libs/EscapezCore-0.1.3.jar
+# JAR: build/libs/EscapezCore-0.1.4.jar
 ```
 
 Requires **Java 21**. Database (PostgreSQL) is optional — leave `database.enabled: false` in `config.yml`.

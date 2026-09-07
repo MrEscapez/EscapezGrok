@@ -1,0 +1,57 @@
+# EscapezCore scoreboard, tips & vote-herinneringen (FASE 7)
+# MiniMessage Nederlands. PlaceholderAPI %...% wanneer PAPI aanwezig is (soft-dep).
+# Ingebouwde braces: {player} {world} {online} {max} {ping} {url}
+
+scoreboard:
+  enabled: true
+  # Refresh interval in ticks (20 = 1 seconde). Scoreboard-API updates lopen op de main thread.
+  refresh-ticks: 20
+  # Titel van de sidebar
+  title: "<gradient:#00E5FF:#7C4DFF><bold>EscapezCraft</bold></gradient>"
+  # Regels (max ~15). Lege string = lege regel. Updates in-place (geen flicker).
+  lines:
+    - ""
+    - "<gray>Speler: </gray><white>{player}</white>"
+    - "<gray>Wereld: </gray><aqua>{world}</aqua>"
+    - "<gray>Online: </gray><green>{online}</green><gray>/</gray><white>{max}</white>"
+    - ""
+    - "<yellow>/vote</yellow> <gray>voor rewards</gray>"
+    - "<aqua>/discord</aqua> <gray>community</gray>"
+    - ""
+  # Wereld-filter
+  worlds:
+    # all | whitelist | blacklist
+    mode: all
+    list: []
+  toggle:
+    enabled: true
+    permission: escapezcore.scoreboard.toggle
+    # Standaard zichtbaar voor nieuwe spelers
+    default-visible: true
+  # Wanneer PlaceholderAPI ontbreekt: leave = laat %...% staan | strip = verwijder %...%
+  missing-papi: leave
+
+tips:
+  enabled: true
+  # Interval in seconden tussen tips
+  interval-seconds: 180
+  # random | sequential
+  mode: random
+  # Leeg = iedereen online; anders alleen spelers met deze permission
+  permission: ""
+  # Prefix uit messages.yml voorzetten
+  use-prefix: true
+  messages:
+    - "<gray>Tip: join onze Discord via </gray><aqua>/discord</aqua><gray>!</gray>"
+    - "<gray>Tip: stem voor de server met </gray><yellow>/vote</yellow><gray>.</gray>"
+    - "<gray>Tip: bekijk de regels via </gray><aqua>/regels</aqua><gray>.</gray>"
+    - "<gray>Tip: meld spelers netjes met </gray><yellow>/report</yellow><gray>.</gray>"
+    - "<gray>Tip: open het menu met </gray><aqua>/ec</aqua><gray>.</gray>"
+
+vote-reminder:
+  enabled: true
+  interval-seconds: 300
+  permission: ""
+  use-prefix: true
+  # URL komt uit commands.yml → vote.url (voorbeeld-URL, niet inventeren)
+  # Bericht: messages.yml key vote-reminder (placeholders {url})

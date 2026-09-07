@@ -40,6 +40,7 @@ public final class DatabaseModule implements Module {
     private MinecraftPlayerRepository playerRepository;
     private StaffChatLogRepository staffChatLogRepository;
     private McAuditRepository auditRepository;
+    private PlayerPreferencesRepository preferencesRepository;
     private PlayerIdentityListener identityListener;
 
     public DatabaseModule(EscapezCorePlugin plugin, ConfigManager configManager) {
@@ -160,6 +161,7 @@ public final class DatabaseModule implements Module {
         this.playerRepository = new MinecraftPlayerRepository(plugin, this, dialect);
         this.staffChatLogRepository = new StaffChatLogRepository(plugin, this, dialect);
         this.auditRepository = new McAuditRepository(plugin, this, dialect);
+        this.preferencesRepository = new PlayerPreferencesRepository(plugin, this, dialect);
     }
 
     private void registerIdentityListenerSyncSafe(int generation) {
@@ -185,6 +187,7 @@ public final class DatabaseModule implements Module {
         playerRepository = null;
         staffChatLogRepository = null;
         auditRepository = null;
+        preferencesRepository = null;
         tearDownPoolOnly();
         readyFuture = CompletableFuture.completedFuture(false);
     }
@@ -258,6 +261,10 @@ public final class DatabaseModule implements Module {
 
     public McAuditRepository getAuditRepository() {
         return auditRepository;
+    }
+
+    public PlayerPreferencesRepository getPreferencesRepository() {
+        return preferencesRepository;
     }
 
     /**

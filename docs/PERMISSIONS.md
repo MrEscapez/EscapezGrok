@@ -8,3 +8,5 @@
 - `escapezcore.cooldown.bypass`
 
 Without `escapezcore.admin`, `/ec admin` does not appear in tab or help.
+
+| `escapezcore.scoreboard.toggle` | Toggle sidebar via `/sb` or `/ec scoreboard` | true |
