@@ -59,6 +59,10 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
             messages.send(sender, "report-disabled");
             return true;
         }
+        if (!service.isReady()) {
+            messages.send(sender, "report-not-ready");
+            return true;
+        }
         if (args.length < 2) {
             messages.send(sender, "report-usage");
             return true;

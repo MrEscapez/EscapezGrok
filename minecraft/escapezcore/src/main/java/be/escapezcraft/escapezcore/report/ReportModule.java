@@ -10,10 +10,12 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
  * Owns Minecraft player reports: repository selection (PG → SQLite → file) and service.
+ * Repository init is always asynchronous — never block the Paper main thread with join/get.
  */
 public final class ReportModule implements Module {
 
@@ -23,8 +25,9 @@ public final class ReportModule implements Module {
     private final DatabaseModule databaseModule;
     private final CooldownService cooldownService;
     private final ReportService service;
+    private final AtomicInteger initGeneration = new AtomicInteger(0);
     private HikariDataSource sqlitePool;
-    private ReportRepository repository;
+    private volatile ReportRepository repository;
 
     public ReportModule(
             EscapezCorePlugin plugin,
@@ -50,22 +53,46 @@ public final class ReportModule implements Module {
     public void enable() {
         if (!configManager.getConfig().getBoolean("reports.enabled", true)) {
             plugin.getLogger().info("Reports uitgeschakeld in config.");
+            service.setReady(false);
             return;
         }
+        service.setReady(false);
+        int generation = initGeneration.incrementAndGet();
         this.repository = openRepository();
         service.setRepository(repository);
-        try {
-            repository.initialize().join();
-            plugin.getLogger().info("Reports actief (backend=" + repository.backendName() + ").");
-        } catch (Exception ex) {
-            plugin.getLogger().log(Level.SEVERE, "Report repository init mislukt — file fallback", ex);
-            closeSqliteQuietly();
-            File file = new File(plugin.getDataFolder(), "reports.yml");
-            this.repository = new FileReportRepository(plugin, file);
-            service.setRepository(repository);
-            repository.initialize().join();
-            plugin.getLogger().info("Reports actief (backend=file, na fout).");
-        }
+        beginInitialize(repository, generation, true);
+        // Must return without blocking — init continues asynchronously.
+    }
+
+    /**
+     * Starts async schema/file load. Never calls {@code join()}/{@code get()} on the server thread.
+     */
+    private void beginInitialize(ReportRepository repo, int generation, boolean allowFileFallback) {
+        final ReportRepository expected = repo;
+        repo.initialize().whenComplete((ignored, error) -> {
+            if (generation != initGeneration.get() || this.repository != expected) {
+                return; // disabled or replaced mid-init
+            }
+            if (error != null) {
+                plugin.getLogger().log(Level.SEVERE,
+                        "Report repository init mislukt"
+                                + (allowFileFallback ? " — file fallback" : ""),
+                        error);
+                if (!allowFileFallback) {
+                    service.setReady(false);
+                    return;
+                }
+                closeSqliteQuietly();
+                File file = new File(plugin.getDataFolder(), "reports.yml");
+                FileReportRepository fallback = new FileReportRepository(plugin, file);
+                this.repository = fallback;
+                service.setRepository(fallback);
+                beginInitialize(fallback, generation, false);
+                return;
+            }
+            service.setReady(true);
+            plugin.getLogger().info("Reports actief (backend=" + expected.backendName() + ").");
+        });
     }
 
     private ReportRepository openRepository() {
@@ -117,22 +144,27 @@ public final class ReportModule implements Module {
 
     @Override
     public void disable() {
-        if (repository != null) {
-            try {
-                repository.close().join();
-            } catch (Exception ex) {
-                plugin.getLogger().log(Level.WARNING, "Report repository close fout", ex);
-            }
-            repository = null;
+        initGeneration.incrementAndGet(); // cancel in-flight init callbacks
+        service.setReady(false);
+        ReportRepository closing = this.repository;
+        this.repository = null;
+        service.setRepository(null);
+        if (closing != null) {
+            // Do not join — close may schedule Bukkit async I/O (file backend).
+            closing.close().whenComplete((ignored, ex) -> {
+                if (ex != null) {
+                    plugin.getLogger().log(Level.WARNING, "Report repository close fout", ex);
+                }
+            });
         }
         closeSqliteQuietly();
-        service.setRepository(null);
     }
 
     @Override
     public void reload() {
         // Keep existing repository; config values (cooldown etc.) are read live from ConfigManager.
-        plugin.getLogger().info("ReportModule herladen (backend=" + service.backendName() + ").");
+        plugin.getLogger().info("ReportModule herladen (backend=" + service.backendName()
+                + ", ready=" + service.isReady() + ").");
     }
 
     private void closeSqliteQuietly() {

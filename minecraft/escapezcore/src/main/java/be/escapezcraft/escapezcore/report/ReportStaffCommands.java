@@ -62,6 +62,10 @@ public final class ReportStaffCommands implements CommandExecutor, TabCompleter 
             messages.send(sender, "report-disabled");
             return true;
         }
+        if (!service.isReady()) {
+            messages.send(sender, "report-not-ready");
+            return true;
+        }
         if (args.length == 0) {
             messages.send(sender, "report-staff-usage");
             return true;

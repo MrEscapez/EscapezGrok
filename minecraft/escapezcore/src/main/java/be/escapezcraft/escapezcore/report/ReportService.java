@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 /**
@@ -29,6 +30,7 @@ public final class ReportService {
     private final MessagesService messages;
     private final CooldownService cooldowns;
     private ReportRepository repository;
+    private final AtomicBoolean ready = new AtomicBoolean(false);
 
     public ReportService(
             EscapezCorePlugin plugin,
@@ -44,10 +46,22 @@ public final class ReportService {
 
     public void setRepository(ReportRepository repository) {
         this.repository = repository;
+        if (repository == null) {
+            ready.set(false);
+        }
     }
 
     public ReportRepository getRepository() {
         return repository;
+    }
+
+    /** True when repository schema/file load finished successfully (never block waiting for this). */
+    public void setReady(boolean value) {
+        ready.set(value);
+    }
+
+    public boolean isReady() {
+        return ready.get() && repository != null;
     }
 
     public boolean isEnabled() {
@@ -71,8 +85,8 @@ public final class ReportService {
     }
 
     public CompletableFuture<Report> submit(Player reporter, Player target, String reason) {
-        if (!isEnabled()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Reports disabled"));
+        if (!isEnabled() || !isReady()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Reports not ready"));
         }
         String trimmed = reason == null ? "" : reason.trim();
         int max = maxReasonLength();
@@ -104,16 +118,25 @@ public final class ReportService {
     }
 
     public CompletableFuture<Optional<Report>> find(long id) {
+        if (!isReady()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Reports not ready"));
+        }
         return repository.findById(id);
     }
 
     public CompletableFuture<List<Report>> list(ReportStatus status, int page) {
+        if (!isReady()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Reports not ready"));
+        }
         int size = listPageSize();
         int offset = Math.max(0, page) * size;
         return repository.list(status, offset, size);
     }
 
     public CompletableFuture<Optional<Report>> claim(long id, UUID staffUuid, String staffName) {
+        if (!isReady()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Reports not ready"));
+        }
         return repository.findById(id).thenCompose(opt -> {
             if (opt.isEmpty()) {
                 return CompletableFuture.completedFuture(Optional.empty());
@@ -136,6 +159,9 @@ public final class ReportService {
     }
 
     public CompletableFuture<Optional<Report>> addNote(long id, String note) {
+        if (!isReady()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Reports not ready"));
+        }
         return repository.findById(id).thenCompose(opt -> {
             if (opt.isEmpty()) {
                 return CompletableFuture.completedFuture(Optional.empty());
@@ -154,6 +180,9 @@ public final class ReportService {
     }
 
     private CompletableFuture<Optional<Report>> setStatus(long id, ReportStatus status) {
+        if (!isReady()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Reports not ready"));
+        }
         return repository.findById(id).thenCompose(opt -> {
             if (opt.isEmpty()) {
                 return CompletableFuture.completedFuture(Optional.empty());

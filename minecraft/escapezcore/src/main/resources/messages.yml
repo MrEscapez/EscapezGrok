@@ -44,6 +44,7 @@ gui-editor-save-stub: "<yellow>Save is nog een stub</yellow><gray> — volledige
 # --- Reports (FASE 5) ---
 report-usage: "<gray>Gebruik: </gray><yellow>/report <speler> <reden></yellow>"
 report-disabled: "<red>Meldingen zijn momenteel uitgeschakeld.</red>"
+report-not-ready: "<yellow>Meldingen zijn nog niet klaar. Probeer zo opnieuw.</yellow>"
 report-player-not-found: "<red>Speler niet gevonden (moet online zijn): </red><yellow>{player}</yellow>"
 report-self: "<red>Je kunt jezelf niet melden.</red>"
 report-reason-short: "<red>Geef een duidelijkere reden (minstens 3 tekens).</red>"
