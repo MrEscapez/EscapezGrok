@@ -142,7 +142,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 guiModule.openAdmin(player);
                 return true;
             }
-            sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|hooks|debug|report></gray>"));
+            sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|hooks|api|debug|report></gray>"));
             return true;
         }
 
@@ -210,11 +210,47 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 }
                 return reportStaffCommands.handle(sender, Arrays.copyOfRange(args, 1, args.length));
             }
-            default -> sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|hooks|debug|report></gray>"));
+            case "api" -> {
+                if (!sender.hasPermission(ADMIN_PERMISSION)) {
+                    messages.send(sender, "no-permission");
+                    return true;
+                }
+                return handleApiStatus(sender);
+            }
+            default -> sender.sendMessage(messages.parse("<gray>/ec admin <reload|gui|item|hooks|api|debug|report></gray>"));
         }
         return true;
     }
 
+
+
+    private boolean handleApiStatus(CommandSender sender) {
+        var api = plugin.getApiModule();
+        if (api == null) {
+            sender.sendMessage(messages.parse("<red>API-module niet geladen.</red>"));
+            return true;
+        }
+        var snap = api.statusSnapshot();
+        sender.sendMessage(messages.parse("<aqua><bold>API bridge</bold></aqua>"));
+        sender.sendMessage(messages.parse("<gray>enabled:</gray> <white>" + snap.get("enabled") + "</white>"));
+        sender.sendMessage(messages.parse("<gray>running:</gray> <white>" + snap.get("running") + "</white>"));
+        sender.sendMessage(messages.parse("<gray>listen:</gray> <white>" + snap.get("listen") + "</white>"));
+        sender.sendMessage(messages.parse("<gray>panelOnline:</gray> <white>" + snap.get("panelOnline") + "</white>"));
+        sender.sendMessage(messages.parse("<gray>pendingEvents:</gray> <white>" + snap.get("pendingEvents") + "</white>"));
+        sender.sendMessage(messages.parse("<gray>failures:</gray> <white>" + snap.get("failures") + "</white>"));
+        if (snap.get("summary") != null) {
+            sender.sendMessage(messages.parse("<gray>summary:</gray> <white>" + snap.get("summary") + "</white>"));
+        }
+        if (api.getToggleService() != null) {
+            sender.sendMessage(messages.parse("<aqua>Modules:</aqua>"));
+            for (var m : api.getToggleService().listModules()) {
+                String state = m.enabled() ? (m.active() ? "<green>aan/actief</green>" : "<yellow>aan/inactief</yellow>")
+                        : "<red>uit</red>";
+                sender.sendMessage(messages.parse("<gray>- </gray><white>" + m.id() + "</white> <dark_gray>(" + m.name() + ")</dark_gray> " + state));
+            }
+        }
+        return true;
+    }
 
     private boolean handleHooksStatus(CommandSender sender) {
         messages.send(sender, "hooks-header");
@@ -267,6 +303,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
         if (sender.hasPermission(ADMIN_PERMISSION)) {
             entries.add(new HelpEntry("ec admin", "Admin-tools (reload, gui, item, hooks, debug, report)", ADMIN_PERMISSION));
             entries.add(new HelpEntry("ec admin hooks", "Soft-dep integraties status", ADMIN_PERMISSION));
+            entries.add(new HelpEntry("ec admin api", "Staff Panel API bridge status", ADMIN_PERMISSION));
             entries.add(new HelpEntry("ec admin item", "Custom items (list/info/give/get/gui)", ItemAdminCommands.PERM_ITEM));
             entries.add(new HelpEntry("ec admin gui", "GUI editor skeleton (list/open/save)", "escapezcore.admin.gui"));
             entries.add(new HelpEntry("ec admin report", "Report-beheer (list/view/claim/…)", ADMIN_PERMISSION));
@@ -334,6 +371,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission(ADMIN_PERMISSION)) {
                 adminOpts.add("item");
                 adminOpts.add("hooks");
+                adminOpts.add("api");
                 adminOpts.add("debug");
                 adminOpts.add("report");
             }

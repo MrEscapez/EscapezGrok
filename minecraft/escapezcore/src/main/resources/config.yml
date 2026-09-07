@@ -1,6 +1,6 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 7
+config-version: 8
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
@@ -61,3 +61,26 @@ staffchat:
 # Custom items: zie items.yml (FASE 8)
 
 # Soft-deps / plugin hooks: zie integrations.yml (FASE 9)
+
+
+# Staff Panel API bridge (FASE 10)
+# Hybrid: outbound heartbeat/events → Nest; inbound JDK HttpServer for module toggles.
+# Secrets: ESCAPEZ_API_KEY (preferred) / ESCAPEZ_HMAC_SECRET — never loggen.
+api:
+  enabled: false
+  base-url: "http://127.0.0.1:3000/api/v1"
+  server-id: "survival-1"
+  heartbeat-interval-seconds: 30
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+  pending-queue-max: 100
+  listen:
+    enabled: true
+    bind: "127.0.0.1"
+    port: 8765
+  auth:
+    # Laat leeg en zet ESCAPEZ_API_KEY in de omgeving (zelfde key-family als Staff Panel BRIDGE_API_KEY).
+    api-key: ""
+    hmac-enabled: false
+    # Optioneel: ESCAPEZ_HMAC_SECRET
+    hmac-secret: ""
