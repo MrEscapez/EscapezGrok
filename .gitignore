@@ -27,3 +27,7 @@
 
 # Staff panel runtime module toggles
 staff-panel/backend/data/modules.json
+staff-panel/backend/data/ptero.json
+
+# TS incremental
+**/tsconfig*.tsbuildinfo

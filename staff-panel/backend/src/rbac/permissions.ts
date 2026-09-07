@@ -1,5 +1,5 @@
 /**
- * EscapezCraft Staff Panel — RBAC permission constants (FASE 11–12 skeleton).
+ * EscapezCraft Staff Panel — RBAC permission constants (FASE 11–15).
  * Real enforcement / DB roles come later.
  */
 export const Permissions = {
@@ -18,6 +18,10 @@ export const Permissions = {
   PLANNER_MANAGE: 'planner:manage',
   SERVER_VIEW: 'server:view',
   SERVER_MANAGE: 'server:manage',
+  /** Send RCON / console commands */
+  SERVER_COMMAND: 'server:command',
+  /** Power actions: start / stop / restart */
+  SERVER_RESTART: 'server:restart',
   AUDIT_VIEW: 'audit:view',
   SETTINGS_VIEW: 'settings:view',
   SETTINGS_MANAGE: 'settings:manage',

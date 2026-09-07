@@ -1,0 +1,6 @@
+{
+  "baseUrl": "https://panel.example.com",
+  "apiKey": "CHANGE_ME",
+  "clientApiKey": "",
+  "defaultServerId": ""
+}

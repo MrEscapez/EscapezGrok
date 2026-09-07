@@ -1,6 +1,6 @@
 # EscapezCraft Staff Panel — Backend
 
-NestJS + TypeScript API (FASE 11–14 stubs + settings modules).
+NestJS + TypeScript API (FASE 11–15 stubs + settings modules + RCON/Pterodactyl).
 
 ## Setup
 
@@ -64,6 +64,30 @@ Default shift windows: EARLY 06–14, DAY 14–22, LATE 22–06, NIGHT 22–06, 
 
 Seeds one DRAFT week (current Monday) with demo shifts on boot.
 
+
+## Server — RCON + Pterodactyl (FASE 15)
+
+**Security / Beveiliging**
+
+- EN: `RCON_HOST` / `RCON_PORT` / `RCON_PASSWORD` and `PTERO_BASE_URL` / `PTERO_API_KEY` /
+  `PTERO_SERVER_ID` live **only** in backend `.env`. API responses never echo secrets.
+  Frontend calls Nest staff cookie APIs only.
+- NL: RCON- en Pterodactyl-credentials **alleen** in backend `.env`. Antwoorden bevatten
+  nooit wachtwoorden of API-keys. Frontend praat enkel met Nest via cookies.
+
+Optional env → stub when missing/`CHANGE_ME`. Real RCON via `rcon-client` when configured.
+
+RBAC: `server:view` (status), `server:command` (RCON), `server:restart` (power).
+
+- GET /api/v1/server/status → power, players?, source, rconConfigured, pteroConfigured (no secrets)
+- POST /api/v1/server/power `{ action: start|stop|restart, confirm: true }` — requires confirm + `server:restart`
+- POST /api/v1/server/rcon `{ command, confirm? }` — denylist (`op`, `stop`, …) needs confirm; safe allowlist `list`/`tps`/…; 503 stub if RCON unset
+- GET /api/v1/server/rcon/safe-commands — allowlist hint for UI
+- GET /api/v1/server/list — Application API server list (no secrets)
+- GET/PUT /api/v1/settings/pterodactyl — public config / write-only keys (data/ptero.json)
+- POST /api/v1/settings/pterodactyl/test — Application API probe
+
+
 ## Endpoints
 
 - GET /api/v1/health
@@ -72,8 +96,9 @@ Seeds one DRAFT week (current Monday) with demo shifts on boot.
 - GET /api/v1/punishments, GET /api/v1/tickets
 - GET/PATCH /api/v1/settings/modules…
 - planner as above
+- server as above
 - bridge + realtime as above
 
 ## Out of scope
 
-Full planner engine / persistence, live RCON, LiteBans deep integration, real secrets, minecraft Java.
+Full planner engine / persistence, LiteBans deep integration, real secrets in repo, minecraft Java.

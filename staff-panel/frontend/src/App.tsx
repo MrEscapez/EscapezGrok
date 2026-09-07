@@ -8,6 +8,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { PunishmentsPage } from './pages/PunishmentsPage';
 import { TicketsPage } from './pages/TicketsPage';
 import { StubPage } from './pages/StubPage';
+import { ServerPage } from './pages/ServerPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PlannerPage } from './pages/PlannerPage';
 
@@ -34,15 +35,7 @@ export function App() {
             }
           />
           <Route path="planner" element={<PlannerPage />} />
-          <Route
-            path="server"
-            element={
-              <StubPage
-                title="Server"
-                description="Serverbeheer (placeholder — geen live RCON)."
-              />
-            }
-          />
+          <Route path="server" element={<ServerPage />} />
           <Route
             path="audit"
             element={

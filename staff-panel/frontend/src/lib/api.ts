@@ -314,3 +314,169 @@ export function patchSettingsModule(
   });
 }
 
+export type ServerPower = 'online' | 'offline' | 'unknown';
+export type ServerStatusSource = 'rcon' | 'ptero' | 'stub';
+
+export type ServerStatus = {
+  power: ServerPower;
+  playersOnline?: number;
+  maxPlayers?: number;
+  source: ServerStatusSource;
+  pterodactyl?: { state: string };
+  rconConfigured: boolean;
+  pteroConfigured: boolean;
+  stub: boolean;
+  message?: string;
+};
+
+export type ServerPowerAction = 'start' | 'stop' | 'restart';
+
+export type ServerPowerResult = {
+  ok: boolean;
+  stub: boolean;
+  action: string;
+  message: string;
+  pteroConfigured: boolean;
+};
+
+export type ServerRconResult = {
+  ok: boolean;
+  stub: boolean;
+  connected: boolean;
+  command: string;
+  response?: string;
+  message: string;
+  requiredConfirm?: boolean;
+};
+
+export type SafeCommandsResponse = {
+  commands: string[];
+};
+
+/** Never log passwords / RCON secrets — body is command text only. */
+export function fetchServerStatus(): Promise<ServerStatus> {
+  return apiFetch<ServerStatus>('/server/status');
+}
+
+export function fetchSafeRconCommands(): Promise<SafeCommandsResponse> {
+  return apiFetch<SafeCommandsResponse>('/server/rcon/safe-commands');
+}
+
+export function postServerPower(
+  action: ServerPowerAction,
+  confirm: true,
+  serverIdentifier?: string,
+): Promise<ServerPowerResult> {
+  const body: {
+    action: ServerPowerAction;
+    confirm: true;
+    serverIdentifier?: string;
+  } = { action, confirm };
+  if (serverIdentifier) body.serverIdentifier = serverIdentifier;
+  return apiFetch<ServerPowerResult>('/server/power', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function postServerRcon(
+  command: string,
+  confirm?: boolean,
+): Promise<ServerRconResult> {
+  const body: { command: string; confirm?: boolean } = { command };
+  if (confirm === true) body.confirm = true;
+  return apiFetch<ServerRconResult>('/server/rcon', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export type PteroServerSummary = {
+  id: number | string;
+  identifier: string;
+  uuid: string;
+  name: string;
+  description: string;
+  suspended: boolean;
+  status: string | null;
+  node?: number | string;
+  power: 'running' | 'starting' | 'stopping' | 'offline' | 'unknown';
+  playersOnline?: number;
+  maxPlayers?: number;
+};
+
+export type ServerListResponse = {
+  configured: boolean;
+  stub: boolean;
+  items: PteroServerSummary[];
+  message?: string;
+};
+
+export type PteroPublicConfig = {
+  configured: boolean;
+  baseUrlConfigured: boolean;
+  baseUrlHost: string | null;
+  apiKeyConfigured: boolean;
+  apiKeyHint: string | null;
+  clientApiKeyConfigured: boolean;
+  clientApiKeyHint: string | null;
+  defaultServerIdConfigured: boolean;
+  defaultServerIdHint: string | null;
+  source: 'file' | 'env' | 'none';
+};
+
+export type PteroTestResult = {
+  ok: boolean;
+  stub: boolean;
+  message: string;
+  httpStatus?: number;
+  serverCount?: number;
+};
+
+export type PteroConfigSaveInput = {
+  baseUrl?: string;
+  /** Write-only — omit to keep existing; never log this value. */
+  apiKey?: string;
+  clientApiKey?: string;
+  defaultServerId?: string;
+  clearApiKey?: boolean;
+  clearClientApiKey?: boolean;
+};
+
+export function fetchServerList(): Promise<ServerListResponse> {
+  return apiFetch<ServerListResponse>('/server/list');
+}
+
+export function fetchPteroSettings(): Promise<PteroPublicConfig> {
+  return apiFetch<PteroPublicConfig>('/settings/pterodactyl');
+}
+
+/** Never log apiKey / clientApiKey values. */
+export function savePteroSettings(
+  input: PteroConfigSaveInput,
+): Promise<PteroPublicConfig> {
+  const body: PteroConfigSaveInput = {};
+  if (typeof input.baseUrl === 'string') body.baseUrl = input.baseUrl;
+  if (typeof input.apiKey === 'string' && input.apiKey.trim()) {
+    body.apiKey = input.apiKey.trim();
+  }
+  if (typeof input.clientApiKey === 'string' && input.clientApiKey.trim()) {
+    body.clientApiKey = input.clientApiKey.trim();
+  }
+  if (typeof input.defaultServerId === 'string') {
+    body.defaultServerId = input.defaultServerId;
+  }
+  if (input.clearApiKey) body.clearApiKey = true;
+  if (input.clearClientApiKey) body.clearClientApiKey = true;
+  return apiFetch<PteroPublicConfig>('/settings/pterodactyl', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export function testPteroConnection(): Promise<PteroTestResult> {
+  return apiFetch<PteroTestResult>('/settings/pterodactyl/test', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
