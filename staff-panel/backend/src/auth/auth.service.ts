@@ -1,29 +1,27 @@
 import {
   Injectable,
-  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { ALL_PERMISSIONS, Permission } from '../rbac/permissions';
+import { Permission } from '../rbac/permissions';
+import { RbacStore } from '../rbac/rbac.store';
 
 export interface StaffSession {
   userId: string;
   username: string;
   permissions: Permission[];
+  roleIds: string[];
   createdAt: string;
 }
 
 /**
- * Local-demo auth: HttpOnly cookie sessions + bcrypt against bootstrap stub.
- * No JWT in localStorage. Real user store (Postgres) comes later.
+ * Local-demo auth: HttpOnly cookie sessions + bcrypt against RbacStore users.
+ * No JWT in localStorage. Effective permissions = union of assigned roles.
  */
 @Injectable()
-export class AuthService implements OnModuleInit {
+export class AuthService {
   private readonly sessions = new Map<string, StaffSession>();
-  private bootstrapUsername = 'admin';
-  private bootstrapPasswordHash = '';
 
   /** Simple in-memory rate limit: IP/username → attempts */
   private readonly loginAttempts = new Map<
@@ -33,20 +31,10 @@ export class AuthService implements OnModuleInit {
   private readonly maxAttempts = 10;
   private readonly windowMs = 60_000;
 
-  constructor(private readonly config: ConfigService) {}
-
-  async onModuleInit(): Promise<void> {
-    this.bootstrapUsername = this.config.get<string>(
-      'STAFF_BOOTSTRAP_USERNAME',
-      'admin',
-    );
-    const plaintext = this.config.get<string>(
-      'STAFF_BOOTSTRAP_PASSWORD',
-      'CHANGE_ME',
-    );
-    // Hash once at boot into memory — do not commit real secrets
-    this.bootstrapPasswordHash = await bcrypt.hash(plaintext, 10);
-  }
+  constructor(
+    private readonly config: ConfigService,
+    private readonly rbac: RbacStore,
+  ) {}
 
   assertNotRateLimited(key: string): void {
     const now = Date.now();
@@ -83,36 +71,37 @@ export class AuthService implements OnModuleInit {
     this.loginAttempts.set(key, entry);
   }
 
-  async verifyBootstrapCredentials(
-    username: string,
-    password: string,
-  ): Promise<boolean> {
-    if (!username || !password) return false;
-    if (username !== this.bootstrapUsername) {
-      // Still run compare to keep timing roughly similar
-      await bcrypt.compare(password, this.bootstrapPasswordHash);
-      return false;
-    }
-    return bcrypt.compare(password, this.bootstrapPasswordHash);
-  }
-
   async login(
     username: string,
     password: string,
     rateKey = 'global',
   ): Promise<{ sessionId: string; session: StaffSession }> {
     this.assertNotRateLimited(rateKey);
-    const ok = await this.verifyBootstrapCredentials(username, password);
+
+    const user = this.rbac.findUserByUsername(username.trim());
+    let ok = false;
+    if (user) {
+      ok = await this.rbac.verifyPassword(user, password);
+    } else {
+      // Timing pad: compare against a dummy hash path via helper user or admin
+      const pad = this.rbac.findUserByUsername('admin');
+      if (pad) {
+        await this.rbac.verifyPassword(pad, password);
+      }
+    }
+
     this.recordAttempt(rateKey, ok);
-    if (!ok) {
+    if (!ok || !user) {
       throw new UnauthorizedException('Ongeldige inloggegevens');
     }
 
+    const permissions = this.rbac.effectivePermissions(user.roleIds);
     const sessionId = this.createSessionId();
     const session: StaffSession = {
-      userId: `stub-${username}`,
-      username,
-      permissions: [...ALL_PERMISSIONS],
+      userId: user.id,
+      username: user.username,
+      permissions,
+      roleIds: [...user.roleIds],
       createdAt: new Date().toISOString(),
     };
     this.sessions.set(sessionId, session);
@@ -128,6 +117,51 @@ export class AuthService implements OnModuleInit {
   getSession(sessionId: string | undefined): StaffSession | null {
     if (!sessionId) return null;
     return this.sessions.get(sessionId) ?? null;
+  }
+
+  /**
+   * Refresh effective permissions on an existing session (after role edits).
+   * Returns null if session gone or user deleted.
+   */
+  refreshSessionPermissions(sessionId: string | undefined): StaffSession | null {
+    if (!sessionId) return null;
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+    const user = this.rbac.getUser(session.userId);
+    if (!user) {
+      this.sessions.delete(sessionId);
+      return null;
+    }
+    session.permissions = this.rbac.effectivePermissions(user.roleIds);
+    session.roleIds = [...user.roleIds];
+    session.username = user.username;
+    this.sessions.set(sessionId, session);
+    return session;
+  }
+
+  /** Invalidate all sessions for a user id (e.g. after password reset). */
+  invalidateUserSessions(userId: string): void {
+    for (const [sid, session] of this.sessions.entries()) {
+      if (session.userId === userId) {
+        this.sessions.delete(sid);
+      }
+    }
+  }
+
+  /** Recompute permissions for every live session of a user. */
+  refreshUserSessions(userId: string): void {
+    for (const [sid, session] of this.sessions.entries()) {
+      if (session.userId === userId) {
+        this.refreshSessionPermissions(sid);
+      }
+    }
+  }
+
+  /** After role permission matrix change — refresh all sessions. */
+  refreshAllSessions(): void {
+    for (const sid of [...this.sessions.keys()]) {
+      this.refreshSessionPermissions(sid);
+    }
   }
 
   cookieName(): string {

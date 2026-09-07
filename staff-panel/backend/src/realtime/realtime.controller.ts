@@ -3,11 +3,11 @@ import {
   MessageEvent,
   Req,
   Sse,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { Observable, interval, map, merge, takeUntil, Subject } from 'rxjs';
-import { AuthService } from '../auth/auth.service';
+import { Permissions } from '../rbac/permissions';
+import { RequirePermissions } from '../rbac/require-permissions.decorator';
+import type { StaffRequest } from '../rbac/staff-request';
 import { BridgeService } from '../bridge/bridge.service';
 
 /**
@@ -16,20 +16,12 @@ import { BridgeService } from '../bridge/bridge.service';
  */
 @Controller('realtime')
 export class RealtimeController {
-  constructor(
-    private readonly auth: AuthService,
-    private readonly bridge: BridgeService,
-  ) {}
+  constructor(private readonly bridge: BridgeService) {}
 
   @Sse('stream')
-  stream(@Req() req: Request): Observable<MessageEvent> {
-    const sessionId = req.cookies?.[this.auth.cookieName()] as
-      | string
-      | undefined;
-    const session = this.auth.getSession(sessionId);
-    if (!session) {
-      throw new UnauthorizedException('Niet ingelogd');
-    }
+  @RequirePermissions(Permissions.DASHBOARD_VIEW)
+  stream(@Req() req: StaffRequest): Observable<MessageEvent> {
+    const session = req.staffSession!;
 
     const close$ = new Subject<void>();
     req.on('close', () => {

@@ -10,6 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
+import { Public } from '../rbac/public.decorator';
 import { SettingsService } from '../settings/settings.service';
 import {
   hasStaffSession,
@@ -19,6 +20,7 @@ import { BridgeService } from './bridge.service';
 import { BridgeEventDto } from './dto/event.dto';
 
 @Controller('bridge')
+@Public()
 export class BridgeController {
   constructor(
     private readonly bridge: BridgeService,

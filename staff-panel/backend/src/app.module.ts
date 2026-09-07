@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
@@ -11,6 +12,10 @@ import { TicketsModule } from './tickets/tickets.module';
 import { PlannerModule } from './planner/planner.module';
 import { SettingsModule } from './settings/settings.module';
 import { ServerModule } from './server/server.module';
+import { UsersModule } from './users/users.module';
+import { RbacModule } from './rbac/rbac.module';
+import { SessionAuthGuard } from './rbac/session-auth.guard';
+import { PermissionsGuard } from './rbac/permissions.guard';
 
 @Module({
   imports: [
@@ -18,6 +23,7 @@ import { ServerModule } from './server/server.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    RbacModule,
     HealthModule,
     AuthModule,
     PlayersModule,
@@ -29,6 +35,11 @@ import { ServerModule } from './server/server.module';
     PlannerModule,
     SettingsModule,
     ServerModule,
+    UsersModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: SessionAuthGuard },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
 })
 export class AppModule {}

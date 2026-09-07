@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
+import { Permissions } from '../rbac/permissions';
+import { RequirePermissions } from '../rbac/require-permissions.decorator';
 
-/**
- * Thin stub for supporttickets — empty until ticket store is wired.
- */
 @Controller('tickets')
 export class TicketsController {
   @Get()
+  @RequirePermissions(Permissions.TICKETS_VIEW)
   list(): {
     items: Array<{
       id: string;

@@ -53,3 +53,11 @@ Server page lists all Application API servers when configured.
 ## Out of scope
 
 Full planner engine / persistence, LiteBans deep integration. No secrets/RCON/Pterodactyl credentials in the client.
+
+## RBAC (UI)
+
+- Nav links are hidden without the matching `*:view` permission from `/auth/me`.
+- Routes use `RequirePermission` → `/forbidden` (403 page) when missing.
+- `can('server:power')` helper in `src/lib/permissions.ts` + `useCan()`.
+- Users page: `/users` (Dutch) — list, assign roles, create user, role permission matrix.
+- Backend still enforces all mutations; UI hide is not security.

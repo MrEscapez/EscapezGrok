@@ -6,6 +6,7 @@ export type StaffUser = {
   id: string;
   username: string;
   permissions: string[];
+  roleIds?: string[];
 };
 
 export type HealthStatus = {
@@ -478,5 +479,68 @@ export function testPteroConnection(): Promise<PteroTestResult> {
   return apiFetch<PteroTestResult>('/settings/pterodactyl/test', {
     method: 'POST',
     body: JSON.stringify({}),
+  });
+}
+
+
+export type StaffRole = {
+  id: string;
+  name: string;
+  permissions: string[];
+};
+
+export type StaffUserListItem = {
+  id: string;
+  username: string;
+  roleIds: string[];
+  roles: Array<{ id: string; name: string }>;
+  permissions: string[];
+};
+
+export type UsersListResponse = {
+  items: StaffUserListItem[];
+};
+
+export type RolesListResponse = {
+  items: StaffRole[];
+  catalog: Array<{ id: string; label: string }>;
+};
+
+export function fetchStaffUsers(): Promise<UsersListResponse> {
+  return apiFetch<UsersListResponse>('/users');
+}
+
+export function createStaffUser(input: {
+  username: string;
+  password: string;
+  roleIds: string[];
+}): Promise<{ ok: boolean; user: StaffUserListItem }> {
+  return apiFetch('/users', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateStaffUser(
+  id: string,
+  input: { roleIds?: string[]; password?: string },
+): Promise<{ ok: boolean; user: StaffUserListItem }> {
+  return apiFetch(`/users/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function fetchRoles(): Promise<RolesListResponse> {
+  return apiFetch<RolesListResponse>('/roles');
+}
+
+export function updateRolePermissions(
+  id: string,
+  permissions: string[],
+): Promise<{ ok: boolean; role: StaffRole }> {
+  return apiFetch(`/roles/${encodeURIComponent(id)}/permissions`, {
+    method: 'PUT',
+    body: JSON.stringify({ permissions }),
   });
 }
