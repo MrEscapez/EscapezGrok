@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.7
+- FASE 10: Secure API bridge to Staff Panel — hybrid outbound heartbeat/events + inbound JDK HttpServer.
+- Auth: `X-Escapez-Api-Key` (`ESCAPEZ_API_KEY`) + optional HMAC (`ESCAPEZ_HMAC_SECRET`); secrets never logged.
+- Inbound: `GET /api/v1/modules`, `PATCH /api/v1/modules/:id` `{enabled}` with soft-reload (no main-thread join/get); also `/health` + `/status`.
+- Module ids: scoreboard, tips, vote, resourcepack, reports, staffchat, items.
+- Outbound aligns with Staff Panel stubs: `POST /api/v1/bridge/heartbeat` + `/events`; pending queue when panel offline.
+- `/ec admin api` status (stealth); thin `report.created` event.
+- Version **0.1.7**, config-version **8**.
+
+
 ## 0.1.6
 - FASE 9: Plugin hooks / soft-dep adapters — `HookManager` + `integrations.yml` (enable/disable per integration).
 - Adapters: LuckPerms / Vault / PlaceholderAPI (compileOnly public APIs); ItemsAdder / Nexo (reflection); LiteBans, WorldGuard, CoreProtect, Lands, McMMO, ExcellentCrates, MythicMobs, ModelEngine, CMI, ProtocolLib, ViaVersion, WorldEdit (detect-only).

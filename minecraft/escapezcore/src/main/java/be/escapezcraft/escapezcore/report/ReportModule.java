@@ -201,7 +201,21 @@ public final class ReportModule implements Module {
 
     @Override
     public void reload() {
-        // Keep existing repository; config values (cooldown etc.) are read live from ConfigManager.
+        boolean wantEnabled = configManager.getConfig().getBoolean("reports.enabled", true);
+        if (!wantEnabled) {
+            if (repository != null || service.isReady()) {
+                disable();
+            }
+            plugin.getLogger().info("Reports soft-disabled via config (geen Bukkit /reload).");
+            return;
+        }
+        if (repository == null || !service.isReady()) {
+            // Was disabled or not yet ready — start without blocking main thread.
+            enable();
+            plugin.getLogger().info("Reports soft-enabled via config.");
+            return;
+        }
+        // Keep existing repository; cooldown etc. are read live from ConfigManager.
         plugin.getLogger().info("ReportModule herladen (backend=" + service.backendName()
                 + ", ready=" + service.isReady() + ").");
     }

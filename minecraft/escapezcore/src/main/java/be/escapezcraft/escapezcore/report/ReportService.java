@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -105,7 +106,10 @@ public final class ReportService {
                 plugin.getLogger().log(Level.WARNING, "Report opslaan mislukt", err);
                 return;
             }
-            Bukkit.getScheduler().runTask(plugin, () -> notifyStaff(report));
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                notifyStaff(report);
+                publishReportCreated(report);
+            });
         });
     }
 
@@ -190,6 +194,27 @@ public final class ReportService {
             Report updated = opt.get().withStatus(status, Instant.now());
             return repository.update(updated).thenApply(ok -> ok ? Optional.of(updated) : Optional.empty());
         });
+    }
+
+
+    private void publishReportCreated(Report report) {
+        try {
+            var api = plugin.getApiModule();
+            if (api == null) {
+                return;
+            }
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("id", report.id());
+            payload.put("reporterUuid", report.reporterUuid().toString());
+            payload.put("reporterName", report.reporterName());
+            payload.put("targetUuid", report.targetUuid().toString());
+            payload.put("targetName", report.targetName());
+            payload.put("reason", report.reason() == null ? "" : report.reason());
+            payload.put("status", report.status().name());
+            api.publishEvent("report.created", payload);
+        } catch (Exception ex) {
+            plugin.getLogger().log(Level.FINE, "Bridge event report.created overgeslagen", ex);
+        }
     }
 
     private void notifyStaff(Report report) {

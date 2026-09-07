@@ -1,5 +1,6 @@
 package be.escapezcraft.escapezcore;
 
+import be.escapezcraft.escapezcore.api.ApiModule;
 import be.escapezcraft.escapezcore.command.CommandModule;
 import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.database.DatabaseModule;
@@ -35,6 +36,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
     private VoteReminderModule voteReminderModule;
     private ResourcePackModule resourcePackModule;
     private ItemsModule itemsModule;
+    private ApiModule apiModule;
     private boolean debug;
 
     @Override
@@ -56,6 +58,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
         this.voteReminderModule = new VoteReminderModule(this, configManager, messagesService);
         this.resourcePackModule = new ResourcePackModule(this, configManager, messagesService);
         this.itemsModule = new ItemsModule(this, configManager, messagesService, hookManager, guiModule);
+        this.apiModule = new ApiModule(this, configManager);
 
         // Give CommandModule access to feature modules after construction
         this.commandModule.wireFeatureModules(reportModule, staffChatModule, scoreboardModule, itemsModule);
@@ -74,6 +77,8 @@ public final class EscapezCorePlugin extends JavaPlugin {
         moduleManager.register(resourcePackModule);
         // Items after GuiModule so IconResolver can be shared
         moduleManager.register(itemsModule);
+        // API bridge after feature modules so toggles can soft-reload them
+        moduleManager.register(apiModule);
         moduleManager.register(commandModule);
 
         moduleManager.enableAll();
@@ -92,7 +97,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
     /**
      * Safe soft-reload: messages, commands, aliases, gui, scoreboard/tips/vote,
-     * resourcepack, items, integrations, config — never Bukkit.reload().
+     * resourcepack, items, integrations, api bridge, config — never Bukkit.reload().
      */
     public void softReload() throws Exception {
         moduleManager.reloadSafe();
@@ -153,6 +158,10 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
     public ItemsModule getItemsModule() {
         return itemsModule;
+    }
+
+    public ApiModule getApiModule() {
+        return apiModule;
     }
 
     public boolean isDebug() {
