@@ -5,6 +5,8 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { PunishmentsPage } from './pages/PunishmentsPage';
+import { TicketsPage } from './pages/TicketsPage';
 import { StubPage } from './pages/StubPage';
 
 export function App() {
@@ -18,24 +20,8 @@ export function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="players" element={<PlayersPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route
-            path="punishments"
-            element={
-              <StubPage
-                title="Straffen"
-                description="Bans, mutes en warnings (placeholder — geen LiteBans)."
-              />
-            }
-          />
-          <Route
-            path="tickets"
-            element={
-              <StubPage
-                title="Tickets"
-                description="Supporttickets (placeholder)."
-              />
-            }
-          />
+          <Route path="punishments" element={<PunishmentsPage />} />
+          <Route path="tickets" element={<TicketsPage />} />
           <Route
             path="appeals"
             element={

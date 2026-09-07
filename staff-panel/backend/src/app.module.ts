@@ -4,6 +4,10 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { PlayersModule } from './players/players.module';
 import { ReportsModule } from './reports/reports.module';
+import { BridgeModule } from './bridge/bridge.module';
+import { RealtimeModule } from './realtime/realtime.module';
+import { PunishmentsModule } from './punishments/punishments.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -15,6 +19,10 @@ import { ReportsModule } from './reports/reports.module';
     AuthModule,
     PlayersModule,
     ReportsModule,
+    BridgeModule,
+    RealtimeModule,
+    PunishmentsModule,
+    TicketsModule,
   ],
 })
 export class AppModule {}

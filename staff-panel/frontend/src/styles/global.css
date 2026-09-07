@@ -588,3 +588,62 @@ button {
   border-color: rgba(45, 200, 120, 0.4);
   background: rgba(45, 200, 120, 0.1);
 }
+
+
+/* —— Live feed —— */
+.live-feed {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.live-feed__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(45, 125, 255, 0.05);
+}
+
+.live-feed__label {
+  font-size: 0.9rem;
+}
+
+.live-feed__time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge--ban {
+  color: #ffb3c0;
+  border-color: rgba(255, 45, 85, 0.45);
+  background: rgba(255, 45, 85, 0.12);
+}
+
+.badge--mute {
+  color: #b8c8ff;
+  border-color: rgba(45, 125, 255, 0.45);
+  background: rgba(45, 125, 255, 0.12);
+}
+
+.badge--warn {
+  color: #ffe29a;
+  border-color: rgba(255, 180, 40, 0.45);
+  background: rgba(255, 180, 40, 0.1);
+}
+
+.badge--actief {
+  color: #ffb3c0;
+  border-color: rgba(255, 45, 85, 0.4);
+  background: rgba(255, 45, 85, 0.1);
+}

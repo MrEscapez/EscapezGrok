@@ -21,6 +21,14 @@ Set `VITE_API_URL=/api/v1` (default in `.env.example`).
 
 Without proxy: `VITE_API_URL=http://localhost:3000/api/v1` and backend CORS with `credentials: true`.
 
+## Live feed (SSE)
+
+While logged in, the dashboard connects EventSource to `/api/v1/realtime/stream`
+(via Vite `/api` proxy). Shows Dutch labels for heartbeats and bridge events;
+reconnects on error. Graceful if SSE unsupported.
+
+Preview paths: `/dashboard`, `/punishments`, `/tickets`.
+
 ## Out of scope
 
-Planner engine, live RCNN, LiteBans deep integration. No secrets/RCON in the client.
+Planner engine, live RCON, LiteBans deep integration. No secrets/RCON in the client.

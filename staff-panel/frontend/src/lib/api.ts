@@ -37,6 +37,42 @@ export type ReportsResponse = {
   items: ReportItem[];
 };
 
+export type PunishmentItem = {
+  id: string;
+  player: string;
+  type: 'ban' | 'mute' | 'warn' | string;
+  reason: string;
+  staff: string;
+  until: string | null;
+  status: string;
+};
+
+export type PunishmentsResponse = {
+  items: PunishmentItem[];
+};
+
+export type TicketItem = {
+  id: string;
+  subject: string;
+  player: string;
+  status: string;
+  createdAt: string;
+};
+
+export type TicketsResponse = {
+  items: TicketItem[];
+};
+
+export type BridgeHeartbeat = {
+  receivedAt: string;
+  body: Record<string, unknown>;
+};
+
+export type BridgeStatus = {
+  lastHeartbeat: BridgeHeartbeat | null;
+  bufferSize: number;
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -121,4 +157,21 @@ export function login(
 
 export function logout(): Promise<{ ok: boolean }> {
   return apiFetch('/auth/logout', { method: 'POST' });
+}
+
+export function fetchPunishments(): Promise<PunishmentsResponse> {
+  return apiFetch<PunishmentsResponse>('/punishments');
+}
+
+export function fetchTickets(): Promise<TicketsResponse> {
+  return apiFetch<TicketsResponse>('/tickets');
+}
+
+export function fetchBridgeStatus(): Promise<BridgeStatus> {
+  return apiFetch<BridgeStatus>('/bridge/status');
+}
+
+/** SSE URL via Vite proxy — same origin so EventSource sends cookies */
+export function realtimeStreamUrl(): string {
+  return apiUrl('/realtime/stream');
 }
