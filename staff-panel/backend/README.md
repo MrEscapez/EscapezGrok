@@ -1,6 +1,6 @@
 # EscapezCraft Staff Panel — Backend
 
-NestJS + TypeScript API (FASE 11–14 stubs).
+NestJS + TypeScript API (FASE 11–14 stubs + settings modules).
 
 ## Setup
 
@@ -23,6 +23,25 @@ HMAC-ready stub: src/bridge/bridge-auth.ts (API key only today).
 - POST /api/v1/bridge/heartbeat
 - POST /api/v1/bridge/events
 - GET /api/v1/bridge/status (staff session OR bridge key)
+- GET /api/v1/bridge/modules (bridge key) — module on/off status for EscapezCore
+
+
+## Settings modules (EscapezCore soft-reload contract)
+
+Staff cookie + RBAC (`settings:view` / `settings:manage`). Stable ids only:
+`scoreboard`, `tips`, `vote`, `resourcepack`, `reports`, `staffchat`, `items`.
+
+Persisted to `data/modules.json` (in-memory + JSON file).
+
+- GET /api/v1/settings/modules → `{ modules: [{ id, label, enabled, source }] }`
+  - `source`: `local` | `core` | `pending`
+- PATCH /api/v1/settings/modules/:id `{ enabled: boolean }` → module + `syncStatus` +
+  `{ softReload: true, note: "soft-reload gevraagd (stub tot EscapezCore FASE 10 live is)" }`
+
+Panel → Core push stub: when `CORE_API_BASE` is set, backend PATCHes
+`{CORE}/api/v1/modules/:id` with `X-Escapez-Api-Key`. On 503/timeout/error (or when Core
+is not configured): local save + `syncStatus=pending`. Matches future EscapezCore
+soft-reload PATCH (no main-thread join).
 
 ## Realtime SSE
 
@@ -51,6 +70,7 @@ Seeds one DRAFT week (current Monday) with demo shifts on boot.
 - POST /api/v1/auth/login, POST /api/v1/auth/logout, GET /api/v1/auth/me
 - GET /api/v1/players, GET /api/v1/reports
 - GET /api/v1/punishments, GET /api/v1/tickets
+- GET/PATCH /api/v1/settings/modules…
 - planner as above
 - bridge + realtime as above
 

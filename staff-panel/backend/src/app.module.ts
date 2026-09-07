@@ -9,6 +9,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { PunishmentsModule } from './punishments/punishments.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { PlannerModule } from './planner/planner.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PlannerModule } from './planner/planner.module';
     PunishmentsModule,
     TicketsModule,
     PlannerModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

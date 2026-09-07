@@ -279,3 +279,38 @@ export function revertPlannerToDraft(id: string): Promise<PlannerSchedule> {
     body: JSON.stringify({}),
   });
 }
+
+export type ModuleSource = 'local' | 'core' | 'pending';
+export type SyncStatus = 'synced' | 'pending' | 'local';
+
+export type ModuleStatus = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  source: ModuleSource;
+};
+
+export type ModulesResponse = {
+  modules: ModuleStatus[];
+};
+
+export type ModulePatchResponse = ModuleStatus & {
+  syncStatus: SyncStatus;
+  softReload: true;
+  note: string;
+};
+
+export function fetchSettingsModules(): Promise<ModulesResponse> {
+  return apiFetch<ModulesResponse>('/settings/modules');
+}
+
+export function patchSettingsModule(
+  id: string,
+  enabled: boolean,
+): Promise<ModulePatchResponse> {
+  return apiFetch<ModulePatchResponse>(`/settings/modules/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  });
+}
+
