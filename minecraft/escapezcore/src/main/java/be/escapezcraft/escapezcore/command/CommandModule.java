@@ -3,6 +3,7 @@ package be.escapezcraft.escapezcore.command;
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.gui.GuiModule;
+import be.escapezcraft.escapezcore.items.ItemsModule;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.Module;
 import be.escapezcraft.escapezcore.report.ReportCommand;
@@ -48,6 +49,7 @@ public final class CommandModule implements Module {
     private ReportModule reportModule;
     private StaffChatModule staffChatModule;
     private ScoreboardModule scoreboardModule;
+    private ItemsModule itemsModule;
     private ReportCommand reportCommand;
     private ReportStaffCommands reportStaffCommands;
     private StaffChatCommand staffChatCommand;
@@ -71,11 +73,13 @@ public final class CommandModule implements Module {
     public void wireFeatureModules(
             ReportModule reportModule,
             StaffChatModule staffChatModule,
-            ScoreboardModule scoreboardModule
+            ScoreboardModule scoreboardModule,
+            ItemsModule itemsModule
     ) {
         this.reportModule = reportModule;
         this.staffChatModule = staffChatModule;
         this.scoreboardModule = scoreboardModule;
+        this.itemsModule = itemsModule;
     }
 
     @Override
@@ -115,6 +119,10 @@ public final class CommandModule implements Module {
                 bind("sb", scoreboardCommand, scoreboardCommand);
             }
             escapezCommand.setScoreboardHandler(scoreboardCommand);
+        }
+
+        if (itemsModule != null) {
+            escapezCommand.setItemsModule(itemsModule);
         }
 
         syncAliases();
@@ -275,6 +283,10 @@ public final class CommandModule implements Module {
 
     public ScoreboardCommand getScoreboardCommand() {
         return scoreboardCommand;
+    }
+
+    public ItemsModule getItemsModule() {
+        return itemsModule;
     }
 
     public CommandDefinition getDefinition(String key) {

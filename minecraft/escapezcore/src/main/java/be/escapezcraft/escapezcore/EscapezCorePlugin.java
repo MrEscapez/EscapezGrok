@@ -5,9 +5,11 @@ import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.database.DatabaseModule;
 import be.escapezcraft.escapezcore.gui.GuiModule;
 import be.escapezcraft.escapezcore.hooks.HookManager;
+import be.escapezcraft.escapezcore.items.ItemsModule;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.ModuleManager;
 import be.escapezcraft.escapezcore.report.ReportModule;
+import be.escapezcraft.escapezcore.resourcepack.ResourcePackModule;
 import be.escapezcraft.escapezcore.scoreboard.ScoreboardModule;
 import be.escapezcraft.escapezcore.staffchat.StaffChatModule;
 import be.escapezcraft.escapezcore.tips.TipsModule;
@@ -31,6 +33,8 @@ public final class EscapezCorePlugin extends JavaPlugin {
     private ScoreboardModule scoreboardModule;
     private TipsModule tipsModule;
     private VoteReminderModule voteReminderModule;
+    private ResourcePackModule resourcePackModule;
+    private ItemsModule itemsModule;
     private boolean debug;
 
     @Override
@@ -50,9 +54,11 @@ public final class EscapezCorePlugin extends JavaPlugin {
                 this, configManager, messagesService, hookManager, databaseModule);
         this.tipsModule = new TipsModule(this, configManager, messagesService);
         this.voteReminderModule = new VoteReminderModule(this, configManager, messagesService);
+        this.resourcePackModule = new ResourcePackModule(this, configManager, messagesService);
+        this.itemsModule = new ItemsModule(this, configManager, messagesService, hookManager, guiModule);
 
         // Give CommandModule access to feature modules after construction
-        this.commandModule.wireFeatureModules(reportModule, staffChatModule, scoreboardModule);
+        this.commandModule.wireFeatureModules(reportModule, staffChatModule, scoreboardModule, itemsModule);
 
         moduleManager.register(configManager);
         moduleManager.register(messagesService);
@@ -65,6 +71,9 @@ public final class EscapezCorePlugin extends JavaPlugin {
         moduleManager.register(scoreboardModule);
         moduleManager.register(tipsModule);
         moduleManager.register(voteReminderModule);
+        moduleManager.register(resourcePackModule);
+        // Items after GuiModule so IconResolver can be shared
+        moduleManager.register(itemsModule);
         moduleManager.register(commandModule);
 
         moduleManager.enableAll();
@@ -82,7 +91,8 @@ public final class EscapezCorePlugin extends JavaPlugin {
     }
 
     /**
-     * Safe soft-reload: messages, commands, aliases, gui, scoreboard/tips/vote, config — never Bukkit.reload().
+     * Safe soft-reload: messages, commands, aliases, gui, scoreboard/tips/vote,
+     * resourcepack, items, config — never Bukkit.reload().
      */
     public void softReload() throws Exception {
         moduleManager.reloadSafe();
@@ -135,6 +145,14 @@ public final class EscapezCorePlugin extends JavaPlugin {
 
     public VoteReminderModule getVoteReminderModule() {
         return voteReminderModule;
+    }
+
+    public ResourcePackModule getResourcePackModule() {
+        return resourcePackModule;
+    }
+
+    public ItemsModule getItemsModule() {
+        return itemsModule;
     }
 
     public boolean isDebug() {

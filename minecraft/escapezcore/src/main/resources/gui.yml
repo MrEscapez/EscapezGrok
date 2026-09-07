@@ -121,6 +121,18 @@ admin:
         - "<gray>Inspecteer het main-menu</gray>"
       action: open
       open: main
+    items:
+      slot: 13
+      material: NETHER_STAR
+      glow: true
+      name: "<gold>Custom items</gold>"
+      lore:
+        - "<gray>Bekijk / geef items uit items.yml</gray>"
+        - "<dark_gray>/ec admin item gui</dark_gray>"
+      action: admin
+      admin-action: items
+      permission: escapezcore.admin.item.gui
+      hide-if-no-permission: true
     close:
       slot: 22
       material: BARRIER

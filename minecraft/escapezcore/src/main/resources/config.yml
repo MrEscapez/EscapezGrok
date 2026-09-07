@@ -1,6 +1,6 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 5
+config-version: 6
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
@@ -56,3 +56,6 @@ staffchat:
 
 
 # Scoreboard / tips / vote-herinneringen: zie scoreboard.yml (FASE 7)
+
+# Resource pack: zie resourcepack.yml (FASE 8)
+# Custom items: zie items.yml (FASE 8)

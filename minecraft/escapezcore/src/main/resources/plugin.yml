@@ -3,7 +3,7 @@ version: '${version}'
 main: be.escapezcraft.escapezcore.EscapezCorePlugin
 api-version: '1.21'
 author: birger147
-description: EscapezCraft core plugin — GUI, commands, hooks, reports, staffchat, scoreboard, tips, vote reminders, optional database
+description: EscapezCraft core plugin — GUI, commands, hooks, reports, staffchat, scoreboard, tips, vote, resource pack, custom items, optional database
 website: https://example.com/escapezcraft
 softdepend:
   - LuckPerms
@@ -128,12 +128,25 @@ permissions:
     children:
       escapezcore.admin.gui: true
       escapezcore.admin.reload: true
+      escapezcore.admin.item: true
       escapezcore.report.manage: true
   escapezcore.admin.gui:
     description: Admin GUI openen
     default: op
   escapezcore.admin.reload:
-    description: Config/messages/commands/aliases/gui herladen
+    description: Config/messages/commands/aliases/gui/resourcepack/items herladen
+    default: op
+  escapezcore.admin.item:
+    description: Custom items beheren (/ec admin item …)
+    default: op
+    children:
+      escapezcore.admin.item.give: true
+      escapezcore.admin.item.gui: true
+  escapezcore.admin.item.give:
+    description: Custom items geven (give/get)
+    default: op
+  escapezcore.admin.item.gui:
+    description: Admin items GUI openen
     default: op
   escapezcore.cooldown.bypass:
     description: Cooldowns omzeilen

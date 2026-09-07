@@ -108,6 +108,21 @@ public final class GuiActionExecutor {
                 Bukkit.getScheduler().runTask(plugin, () ->
                         guiModule.getEditor().openEditorHome(player));
             }
+            case "items", "item", "items-gui" -> {
+                if (!player.hasPermission("escapezcore.admin.item.gui")
+                        && !player.hasPermission("escapezcore.admin")) {
+                    messages.send(player, "no-permission");
+                    return;
+                }
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    var items = plugin.getItemsModule();
+                    if (items == null || items.getAdminGui() == null) {
+                        messages.send(player, "items-disabled");
+                        return;
+                    }
+                    items.getAdminGui().open(player);
+                });
+            }
             default -> plugin.debugLog("Onbekende admin-action: " + adminAction);
         }
     }

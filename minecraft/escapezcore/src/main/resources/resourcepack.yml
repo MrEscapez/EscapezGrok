@@ -1,0 +1,21 @@
+# EscapezCore resource pack (FASE 8)
+# Host the zip externally (CDN / static host). Never commit real production URLs/secrets.
+# Pipeline: zip monorepo resourcepack/ → SHA-1 → set url + sha1 below → /ec admin reload
+#
+# url: HTTPS URL to the .zip (placeholder only — replace for your environment)
+# sha1: lowercase hex SHA-1 of the zip bytes (40 chars), or empty to skip hash check (not recommended)
+
+enabled: false
+# When true, clients that decline/fail may be kicked (Paper required/force pack)
+required: false
+# Example placeholder — replace with your hosted pack URL
+url: "https://example.com/escapezcraft/resourcepack.zip"
+# Example placeholder SHA-1 (invalid for real use) — compute with: sha1sum pack.zip
+sha1: "0123456789abcdef0123456789abcdef01234567"
+# Delay after join before sending the pack (ticks)
+send-delay-ticks: 20
+# Prompt shown in the vanilla resource-pack dialog (MiniMessage)
+prompt: "<gradient:#00E5FF:#7C4DFF><bold>EscapezCraft</bold></gradient><gray> resource pack</gray>"
+# Kick messages when required=true (MiniMessage; used if status fails)
+kick-on-decline: true
+kick-on-fail: true
