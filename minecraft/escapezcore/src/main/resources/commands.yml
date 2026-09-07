@@ -1,48 +1,93 @@
-# Info-commando's — ALLEEN voorbeeld-URL's (vervang later)
+# Info-commando's — ALLEEN voorbeeld-URL's (vervang later door echte EscapezCraft-links)
+# Per-commando opties: enabled, aliases, permission, cooldown-seconds, cooldown-bypass,
+# console-allowed, player-only, hidden, logging, message-key, url, description, click-action
+
 discord:
   enabled: true
+  aliases: [dc]
   permission: escapezcore.command.discord
+  cooldown-seconds: 5
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
   url: "https://example.com/discord"
   message-key: info-discord
-  cooldown-seconds: 5
   description: "Toon de Discord-link"
+  click-action: open_url
 
 website:
   enabled: true
+  aliases: [web, site]
   permission: escapezcore.command.website
+  cooldown-seconds: 5
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
   url: "https://example.com/website"
   message-key: info-website
-  cooldown-seconds: 5
   description: "Toon de website-link"
+  click-action: open_url
 
 vote:
   enabled: true
+  aliases: [stem]
   permission: escapezcore.command.vote
+  cooldown-seconds: 5
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
   url: "https://example.com/vote"
   message-key: info-vote
-  cooldown-seconds: 5
   description: "Toon de vote-link"
+  click-action: open_url
 
 shop:
   enabled: true
+  aliases: [store]
   permission: escapezcore.command.shop
+  cooldown-seconds: 5
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
   url: "https://example.com/shop"
   message-key: info-shop
-  cooldown-seconds: 5
   description: "Toon de shop-link"
+  click-action: open_url
 
 regels:
   enabled: true
+  aliases: [rules]
   permission: escapezcore.command.regels
+  cooldown-seconds: 5
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
   url: "https://example.com/regels"
   message-key: info-regels
-  cooldown-seconds: 5
   description: "Toon de serverregels"
+  click-action: open_url
 
 staff:
   enabled: true
+  aliases: [team]
   permission: escapezcore.command.staff
+  cooldown-seconds: 5
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
   url: "https://example.com/staff"
   message-key: info-staff
-  cooldown-seconds: 5
   description: "Toon staff-informatie"
+  click-action: open_url

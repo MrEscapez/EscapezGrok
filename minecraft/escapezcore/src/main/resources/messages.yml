@@ -1,4 +1,6 @@
 # EscapezCore berichten (MiniMessage, Nederlands)
+# Placeholders: {key} worden vóór MiniMessage ingevuld (werkt ook in click-URL's).
+# MiniMessage-tags <key> worden ook ondersteund.
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
 no-permission: "<red>Je hebt geen toestemming voor dit commando.</red>"
@@ -14,7 +16,7 @@ item-info: "<gray>Item in hand: </gray><white>{material}</white>"
 no-item: "<red>Je houdt geen item vast.</red>"
 
 help-header: "<gradient:#00E5FF:#7C4DFF><bold>EscapezCore Help</bold></gradient>"
-help-line: "<gray>• </gray><aqua>/{command}</aqua><gray> — {description}</gray>"
+help-line: "<gray>• </gray><aqua><click:suggest_command:'/{command}'><hover:show_text:'<gray>Klik om in te vullen</gray>'>/{command}</hover></click></aqua><gray> — {description}</gray>"
 help-empty: "<gray>Geen commando's beschikbaar voor jouw rechten.</gray>"
 
 info-discord: "<gray>Discord: </gray><aqua><click:open_url:'{url}'><hover:show_text:'<gray>Klik om te openen</gray>'>{url}</hover></click></aqua>"

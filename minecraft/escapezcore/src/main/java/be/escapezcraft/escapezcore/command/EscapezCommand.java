@@ -9,9 +9,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,7 +23,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * /ec — opens GUI; /ec help permission-filtered; /ec admin fully hidden without escapezcore.admin.
+ * /ec — opens GUI; /ec help permission-filtered + clickable; /ec admin fully hidden without escapezcore.admin.
  */
 public final class EscapezCommand implements CommandExecutor, TabCompleter {
 
@@ -37,19 +35,22 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
     private final MessagesService messages;
     private final GuiModule guiModule;
     private final CooldownService cooldowns;
+    private final CommandModule commandModule;
 
     public EscapezCommand(
             EscapezCorePlugin plugin,
             ConfigManager configManager,
             MessagesService messages,
             GuiModule guiModule,
-            CooldownService cooldowns
+            CooldownService cooldowns,
+            CommandModule commandModule
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.messages = messages;
         this.guiModule = guiModule;
         this.cooldowns = cooldowns;
+        this.commandModule = commandModule;
     }
 
     @Override
@@ -83,7 +84,6 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
         // Admin branch is FULLY HIDDEN without permission — no help, no tab, no leak
         if (sub.equals("admin")) {
             if (!sender.hasPermission(ADMIN_PERMISSION)) {
-                // Treat as unknown — do not reveal admin exists
                 messages.send(sender, "unknown-subcommand");
                 return true;
             }
@@ -120,7 +120,8 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                     plugin.softReload();
                     messages.send(sender, "reload-success");
                 } catch (Exception ex) {
-                    messages.send(sender, "reload-failed", Map.of("error", ex.getMessage() == null ? "unknown" : ex.getMessage()));
+                    messages.send(sender, "reload-failed", Map.of(
+                            "error", ex.getMessage() == null ? "unknown" : ex.getMessage()));
                 }
             }
             case "gui" -> {
@@ -139,7 +140,11 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                     messages.send(sender, "player-only");
                     return true;
                 }
-                ItemStack hand = player.getInventory().getItemInMainHand();
+                if (!sender.hasPermission(ADMIN_PERMISSION)) {
+                    messages.send(sender, "no-permission");
+                    return true;
+                }
+                var hand = player.getInventory().getItemInMainHand();
                 if (hand.getType() == Material.AIR) {
                     messages.send(sender, "no-item");
                     return true;
@@ -147,6 +152,10 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 messages.send(sender, "item-info", Map.of("material", hand.getType().name()));
             }
             case "debug" -> {
+                if (!sender.hasPermission(ADMIN_PERMISSION)) {
+                    messages.send(sender, "no-permission");
+                    return true;
+                }
                 boolean next = !plugin.isDebug();
                 plugin.setDebug(next);
                 messages.send(sender, "debug-enabled", Map.of("state", next ? "aan" : "uit"));
@@ -162,17 +171,11 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
         entries.add(new HelpEntry("ec", "Open het EscapezCore menu", EC_PERMISSION));
         entries.add(new HelpEntry("ec help", "Toon deze help", EC_PERMISSION));
 
-        ConfigurationSection commands = configManager.getCommands();
-        if (commands != null) {
-            for (String key : commands.getKeys(false)) {
-                ConfigurationSection section = commands.getConfigurationSection(key);
-                if (section == null || !section.getBoolean("enabled", true)) {
-                    continue;
-                }
-                String perm = section.getString("permission", "escapezcore.command." + key);
-                String desc = section.getString("description", key);
-                entries.add(new HelpEntry(key, desc, perm));
+        for (CommandDefinition def : commandModule.getDefinitions()) {
+            if (!def.enabled() || def.hidden()) {
+                continue;
             }
+            entries.add(new HelpEntry(def.key(), def.description(), def.permission()));
         }
 
         // Admin help ONLY if permitted — never leak otherwise
@@ -186,6 +189,7 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
                 continue;
             }
             any = true;
+            // Placeholders {command}/{description} are brace-substituted in MessagesService
             messages.sendRaw(sender, "help-line", Map.of(
                     "command", entry.command(),
                     "description", entry.description()
@@ -222,7 +226,17 @@ public final class EscapezCommand implements CommandExecutor, TabCompleter {
             if (!sender.hasPermission(ADMIN_PERMISSION)) {
                 return Collections.emptyList();
             }
-            Set<String> adminOpts = Set.of("reload", "gui", "item", "debug");
+            List<String> adminOpts = new ArrayList<>();
+            if (sender.hasPermission("escapezcore.admin.reload")) {
+                adminOpts.add("reload");
+            }
+            if (sender.hasPermission("escapezcore.admin.gui")) {
+                adminOpts.add("gui");
+            }
+            if (sender.hasPermission(ADMIN_PERMISSION)) {
+                adminOpts.add("item");
+                adminOpts.add("debug");
+            }
             String prefix = args[1].toLowerCase(Locale.ROOT);
             return adminOpts.stream().filter(s -> s.startsWith(prefix)).sorted().collect(Collectors.toList());
         }
