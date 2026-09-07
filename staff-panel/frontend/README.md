@@ -27,8 +27,12 @@ While logged in, the dashboard connects EventSource to `/api/v1/realtime/stream`
 (via Vite `/api` proxy). Shows Dutch labels for heartbeats and bridge events;
 reconnects on error. Graceful if SSE unsupported.
 
-Preview paths: `/dashboard`, `/punishments`, `/tickets`.
+Preview paths: `/dashboard`, `/punishments`, `/tickets`, `/planner`.
+
+## Planner (FASE 14 stubs)
+
+Route `/planner` — week selector, DRAFT/PUBLISHED badge + version, days×staff grid with HTML5 drag-and-drop shift chips, Valideren / Publiceren / Terug naar draft. Dutch UI; TanStack Query. No RCON/secrets in the client.
 
 ## Out of scope
 
-Planner engine, live RCON, LiteBans deep integration. No secrets/RCON in the client.
+Full planner engine / persistence, live RCON, LiteBans deep integration. No secrets/RCON in the client.

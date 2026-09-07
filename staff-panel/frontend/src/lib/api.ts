@@ -175,3 +175,107 @@ export function fetchBridgeStatus(): Promise<BridgeStatus> {
 export function realtimeStreamUrl(): string {
   return apiUrl('/realtime/stream');
 }
+
+export type ShiftType = "EARLY" | "DAY" | "LATE" | "NIGHT" | "OFF";
+export type ScheduleStatus = "DRAFT" | "PUBLISHED";
+export type ValidationLevel = "OK" | "WARNING" | "ERROR";
+
+export type PlannerShift = {
+  id: string;
+  staffUserId: string;
+  staffName: string;
+  date: string;
+  type: ShiftType;
+  startTime?: string;
+  endTime?: string;
+};
+
+export type ChangelogEntry = {
+  at: string;
+  action: string;
+  by: string;
+  detail?: string;
+};
+
+export type PlannerSchedule = {
+  id: string;
+  weekStart: string;
+  status: ScheduleStatus;
+  version: number;
+  shifts: PlannerShift[];
+  updatedAt: string;
+  changelog: ChangelogEntry[];
+  holidayExceptions: string[];
+};
+
+export type SchedulesResponse = {
+  items: PlannerSchedule[];
+};
+
+export type ValidationResult = {
+  rule: string;
+  level: ValidationLevel;
+  message: string;
+};
+
+export type ValidateResponse = {
+  results: ValidationResult[];
+};
+
+export function fetchPlannerSchedules(
+  weekStart?: string,
+): Promise<SchedulesResponse> {
+  const params = new URLSearchParams();
+  if (weekStart) params.set("weekStart", weekStart);
+  const qs = params.toString();
+  return apiFetch<SchedulesResponse>(
+    `/planner/schedules${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export function fetchPlannerSchedule(id: string): Promise<PlannerSchedule> {
+  return apiFetch<PlannerSchedule>(`/planner/schedules/${id}`);
+}
+
+export function createPlannerSchedule(
+  weekStart: string,
+): Promise<PlannerSchedule> {
+  return apiFetch<PlannerSchedule>("/planner/schedules", {
+    method: "POST",
+    body: JSON.stringify({ weekStart }),
+  });
+}
+
+export function updatePlannerShifts(
+  id: string,
+  version: number,
+  shifts: PlannerShift[],
+): Promise<PlannerSchedule> {
+  return apiFetch<PlannerSchedule>(`/planner/schedules/${id}/shifts`, {
+    method: "PUT",
+    body: JSON.stringify({ version, shifts }),
+  });
+}
+
+export function validatePlannerSchedule(
+  id: string,
+): Promise<ValidateResponse> {
+  return apiFetch<ValidateResponse>(`/planner/schedules/${id}/validate`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export function publishPlannerSchedule(id: string): Promise<PlannerSchedule> {
+  return apiFetch<PlannerSchedule>(`/planner/schedules/${id}/publish`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export function revertPlannerToDraft(id: string): Promise<PlannerSchedule> {
+  return apiFetch<PlannerSchedule>(`/planner/schedules/${id}/draft`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}

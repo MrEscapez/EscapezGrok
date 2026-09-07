@@ -8,6 +8,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { PunishmentsPage } from './pages/PunishmentsPage';
 import { TicketsPage } from './pages/TicketsPage';
 import { StubPage } from './pages/StubPage';
+import { PlannerPage } from './pages/PlannerPage';
 
 export function App() {
   return (
@@ -31,15 +32,7 @@ export function App() {
               />
             }
           />
-          <Route
-            path="planner"
-            element={
-              <StubPage
-                title="Planner"
-                description="Event- en shiftplanner (placeholder — geen engine)."
-              />
-            }
-          />
+          <Route path="planner" element={<PlannerPage />} />
           <Route
             path="server"
             element={
