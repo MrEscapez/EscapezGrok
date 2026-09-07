@@ -31,7 +31,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
         this.messagesService = new MessagesService(this, configManager);
         this.hookManager = new HookManager(this);
         this.databaseModule = new DatabaseModule(this, configManager);
-        this.guiModule = new GuiModule(this, configManager, messagesService);
+        this.guiModule = new GuiModule(this, configManager, messagesService, hookManager);
         this.commandModule = new CommandModule(this, configManager, messagesService, guiModule);
 
         moduleManager.register(configManager);

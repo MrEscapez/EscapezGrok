@@ -28,3 +28,14 @@ info-staff: "<gray>Staff: </gray><aqua><click:open_url:'{url}'><hover:show_text:
 
 hooks-header: "<gray>Gedetecteerde hooks:</gray>"
 hooks-line: "<gray>• </gray><white>{plugin}</white><gray>: </gray><green>{status}</green>"
+
+item-info-id: "<gray>Item in hand: </gray><white>{material}</white><gray> · id </gray><aqua>{item_id}</aqua>"
+
+gui-editor-usage: "<gray>Gebruik: </gray><yellow>/ec admin gui [list|open <id>|reload|save|edit]</yellow>"
+gui-editor-home: "<light_purple>GUI editor skeleton</light_purple><gray> — nog geen volledige visual editor.</gray>"
+gui-editor-list-header: "<gray>Geregistreerde GUI-menu's:</gray>"
+gui-editor-empty: "<red>Geen menu's geladen uit gui.yml.</red>"
+gui-editor-unknown-menu: "<red>Onbekend menu: </red><yellow>{menu}</yellow>"
+gui-editor-opened: "<gray>Menu geopend ter inspectie: </gray><aqua>{menu}</aqua>"
+gui-editor-reloaded: "<green>gui.yml menu's herladen.</green>"
+gui-editor-save-stub: "<yellow>Save is nog een stub</yellow><gray> — volledige editor komt later. Wijzig gui.yml en gebruik reload.</gray>"

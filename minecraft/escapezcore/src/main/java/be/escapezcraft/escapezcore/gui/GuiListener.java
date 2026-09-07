@@ -1,78 +1,125 @@
 package be.escapezcraft.escapezcore.gui;
 
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
-import be.escapezcraft.escapezcore.config.ConfigManager;
-import be.escapezcraft.escapezcore.messages.MessagesService;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-
-import java.util.Map;
+import org.bukkit.inventory.Inventory;
 
 /**
- * Click protection for EscapezCore GUIs + action dispatch.
+ * Anti-exploit click protection for EscapezCore GUIs + action dispatch.
+ *
+ * Cancels all unwanted interactions (shift-click, number-key, drag, collect,
+ * cursor placement, double-click, creative clone, etc.). Only defined click
+ * handlers on the top inventory run; clicks outside the top inventory are ignored
+ * after cancel. Holder + menuId are validated.
  */
 public final class GuiListener implements Listener {
 
     private final EscapezCorePlugin plugin;
     private final GuiModule guiModule;
-    private final ConfigManager configManager;
-    private final MessagesService messages;
+    private final GuiActionExecutor actions;
 
-    public GuiListener(
-            EscapezCorePlugin plugin,
-            GuiModule guiModule,
-            ConfigManager configManager,
-            MessagesService messages
-    ) {
+    public GuiListener(EscapezCorePlugin plugin, GuiModule guiModule, GuiActionExecutor actions) {
         this.plugin = plugin;
         this.guiModule = guiModule;
-        this.configManager = configManager;
-        this.messages = messages;
+        this.actions = actions;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder() instanceof EscapezGuiHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof EscapezGuiHolder holder)) {
             return;
         }
+
+        // Always cancel first — no item movement into/out of Escapez GUIs
         event.setCancelled(true);
 
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (event.getClickedInventory() == null) {
+
+        String menuId = holder.getMenuId();
+        if (menuId == null || menuId.isBlank() || !guiModule.hasMenu(menuId)) {
+            plugin.debugLog("GUI click geweigerd: ongeldige menuId '" + menuId + "'");
             return;
         }
-        if (event.getClickedInventory() != event.getView().getTopInventory()) {
+
+        // Tracked open menu must match holder (stale / spoofed view)
+        String tracked = guiModule.getOpenMenu(player.getUniqueId());
+        if (tracked != null && !tracked.equals(menuId)) {
+            plugin.debugLog("GUI click geweigerd: tracked=" + tracked + " holder=" + menuId
+                    + " uuid=" + player.getUniqueId());
+            return;
+        }
+
+        // Ignore clicks outside top inventory (player inv / outside)
+        Inventory clicked = event.getClickedInventory();
+        if (clicked == null || clicked != event.getView().getTopInventory()) {
+            return;
+        }
+
+        // Only allow simple defined handlers — block exploit click types
+        if (!isAllowedClick(event)) {
+            plugin.debugLog("GUI exploit-click geblokkeerd: " + event.getClick()
+                    + " / " + event.getAction() + " uuid=" + player.getUniqueId());
             return;
         }
 
         int slot = event.getSlot();
-        String menuId = holder.getMenuId();
-        ConfigurationSection items = configManager.getGui().getConfigurationSection(menuId + ".items");
-        if (items == null) {
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
             return;
         }
 
-        for (String key : items.getKeys(false)) {
-            ConfigurationSection item = items.getConfigurationSection(key);
-            if (item == null || item.getInt("slot", -1) != slot) {
-                continue;
-            }
-            handleAction(player, item);
+        GuiMenuDefinition menu = guiModule.getMenu(menuId);
+        if (menu == null) {
             return;
+        }
+        GuiItemDefinition item = menu.itemAt(slot);
+        if (item == null) {
+            return;
+        }
+
+        actions.execute(player, item);
+    }
+
+    /**
+     * Allowed interaction for dispatching configured actions.
+     * Everything else is cancelled above and ignored here.
+     */
+    private boolean isAllowedClick(InventoryClickEvent event) {
+        ClickType click = event.getClick();
+        InventoryAction action = event.getAction();
+
+        if (click != ClickType.LEFT && click != ClickType.RIGHT) {
+            return false;
+        }
+
+        return switch (action) {
+            case PICKUP_ALL, PICKUP_HALF, PICKUP_ONE, PICKUP_SOME -> true;
+            // Some clients report NOTHING on empty decorative slots — still allow handler lookup
+            case NOTHING -> true;
+            default -> false;
+        };
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    public void onDrag(InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof EscapezGuiHolder) {
+            event.setCancelled(true);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder() instanceof EscapezGuiHolder) {
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    public void onCreative(InventoryCreativeEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof EscapezGuiHolder) {
             event.setCancelled(true);
         }
     }
@@ -82,52 +129,6 @@ public final class GuiListener implements Listener {
         if (event.getInventory().getHolder() instanceof EscapezGuiHolder
                 && event.getPlayer() instanceof Player player) {
             guiModule.clearOpenMenu(player.getUniqueId());
-        }
-    }
-
-    private void handleAction(Player player, ConfigurationSection item) {
-        String action = item.getString("action", "none");
-        switch (action.toLowerCase()) {
-            case "close" -> player.closeInventory();
-            case "command" -> {
-                String cmd = item.getString("command", "");
-                player.closeInventory();
-                if (!cmd.isEmpty()) {
-                    player.performCommand(cmd);
-                }
-            }
-            case "admin" -> {
-                String adminAction = item.getString("admin-action", "");
-                player.closeInventory();
-                switch (adminAction.toLowerCase()) {
-                    case "reload" -> {
-                        if (!player.hasPermission("escapezcore.admin.reload")) {
-                            messages.send(player, "no-permission");
-                            return;
-                        }
-                        try {
-                            plugin.softReload();
-                            messages.send(player, "reload-success");
-                        } catch (Exception ex) {
-                            messages.send(player, "reload-failed",
-                                    Map.of("error", ex.getMessage() == null ? "unknown" : ex.getMessage()));
-                        }
-                    }
-                    case "debug" -> {
-                        if (!player.hasPermission("escapezcore.admin")) {
-                            messages.send(player, "no-permission");
-                            return;
-                        }
-                        boolean next = !plugin.isDebug();
-                        plugin.setDebug(next);
-                        messages.send(player, "debug-enabled", Map.of("state", next ? "aan" : "uit"));
-                    }
-                    default -> {
-                    }
-                }
-            }
-            default -> {
-            }
         }
     }
 }
