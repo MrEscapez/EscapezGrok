@@ -5,6 +5,11 @@ import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.gui.GuiModule;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.Module;
+import be.escapezcraft.escapezcore.report.ReportCommand;
+import be.escapezcraft.escapezcore.report.ReportModule;
+import be.escapezcraft.escapezcore.report.ReportStaffCommands;
+import be.escapezcraft.escapezcore.staffchat.StaffChatCommand;
+import be.escapezcraft.escapezcore.staffchat.StaffChatModule;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -38,6 +43,11 @@ public final class CommandModule implements Module {
     private final CooldownService cooldownService = new CooldownService();
     private final Map<String, CommandDefinition> definitions = new LinkedHashMap<>();
     private EscapezCommand escapezCommand;
+    private ReportModule reportModule;
+    private StaffChatModule staffChatModule;
+    private ReportCommand reportCommand;
+    private ReportStaffCommands reportStaffCommands;
+    private StaffChatCommand staffChatCommand;
 
     public CommandModule(
             EscapezCorePlugin plugin,
@@ -49,6 +59,14 @@ public final class CommandModule implements Module {
         this.configManager = configManager;
         this.messages = messages;
         this.guiModule = guiModule;
+    }
+
+    /**
+     * Called once after ReportModule / StaffChatModule are constructed.
+     */
+    public void wireFeatureModules(ReportModule reportModule, StaffChatModule staffChatModule) {
+        this.reportModule = reportModule;
+        this.staffChatModule = staffChatModule;
     }
 
     @Override
@@ -67,6 +85,19 @@ public final class CommandModule implements Module {
             InfoCommandExecutor executor = new InfoCommandExecutor(
                     plugin, configManager, messages, cooldownService, this, key);
             bind(key, executor, executor);
+        }
+
+        if (reportModule != null) {
+            this.reportCommand = new ReportCommand(plugin, messages, reportModule.getService());
+            this.reportStaffCommands = new ReportStaffCommands(plugin, messages, reportModule.getService());
+            bind("report", reportCommand, reportCommand);
+            bind("reports", reportStaffCommands, reportStaffCommands);
+            escapezCommand.setReportHandlers(reportCommand, reportStaffCommands);
+        }
+
+        if (staffChatModule != null) {
+            this.staffChatCommand = new StaffChatCommand(staffChatModule, messages);
+            bind("sc", staffChatCommand, staffChatCommand);
         }
 
         syncAliases();
@@ -215,6 +246,14 @@ public final class CommandModule implements Module {
 
     public EscapezCommand getEscapezCommand() {
         return escapezCommand;
+    }
+
+    public ReportCommand getReportCommand() {
+        return reportCommand;
+    }
+
+    public ReportStaffCommands getReportStaffCommands() {
+        return reportStaffCommands;
     }
 
     public CommandDefinition getDefinition(String key) {

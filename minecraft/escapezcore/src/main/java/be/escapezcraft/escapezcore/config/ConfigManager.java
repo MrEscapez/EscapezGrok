@@ -18,7 +18,7 @@ import java.util.logging.Level;
  */
 public final class ConfigManager implements Module {
 
-    public static final int CURRENT_CONFIG_VERSION = 2;
+    public static final int CURRENT_CONFIG_VERSION = 3;
 
     private final EscapezCorePlugin plugin;
     private FileConfiguration config;

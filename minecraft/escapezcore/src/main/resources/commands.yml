@@ -91,3 +91,49 @@ staff:
   message-key: info-staff
   description: "Toon staff-informatie"
   click-action: open_url
+
+
+report:
+  enabled: true
+  aliases: [meld]
+  permission: escapezcore.command.report
+  cooldown-seconds: 60
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: false
+  player-only: true
+  hidden: false
+  logging: true
+  message-key: report-usage
+  url: "https://example.com"
+  description: "Meld een speler bij de staff"
+  click-action: suggest_command
+
+reports:
+  enabled: true
+  aliases: []
+  permission: escapezcore.report.manage
+  cooldown-seconds: 0
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: true
+  player-only: false
+  hidden: false
+  logging: true
+  message-key: report-staff-usage
+  url: "https://example.com"
+  description: "Beheer speler-meldingen"
+  click-action: suggest_command
+
+sc:
+  enabled: true
+  aliases: [staffchat]
+  permission: escapezcore.staffchat
+  cooldown-seconds: 0
+  cooldown-bypass: escapezcore.cooldown.bypass
+  console-allowed: false
+  player-only: true
+  hidden: false
+  logging: true
+  message-key: staffchat-usage
+  url: "https://example.com"
+  description: "Staffchat (toggle of één bericht)"
+  click-action: suggest_command

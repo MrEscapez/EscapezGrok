@@ -1,6 +1,6 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 2
+config-version: 3
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 
@@ -21,3 +21,20 @@ cooldowns:
 
 gui:
   open-on-ec: true
+
+# Player reports (FASE 5)
+reports:
+  enabled: true
+  # auto = PostgreSQL wanneer DatabaseModule actief is, anders SQLite, anders file
+  # Opties: auto | postgres | sqlite | file
+  persistence: auto
+  cooldown-seconds: 60
+  max-reason-length: 256
+  list-page-size: 10
+  notify-permission: escapezcore.report.notify
+
+# Staffchat (FASE 5)
+staffchat:
+  enabled: true
+  log-to-console: true
+  format: "<dark_gray>[</dark_gray><aqua>SC</aqua><dark_gray>]</dark_gray> <white>{player}</white><gray>: </gray><white>{message}</white>"
