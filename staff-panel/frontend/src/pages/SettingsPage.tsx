@@ -13,6 +13,7 @@ import {
   type ModuleStatus,
   type PteroPublicConfig,
 } from '../lib/api';
+import { HelpTip, LabelWithHelp } from '../components/HelpTip';
 
 const MODULE_DESCRIPTIONS: Record<string, string> = {
   scoreboard: 'Sidebar-scoreboard voor spelers.',
@@ -268,7 +269,24 @@ export function SettingsPage() {
       ) : null}
 
       <div className="page__card">
-        <h2 className="settings-section-title">Modules</h2>
+        <h2 className="settings-section-title settings-section-title-row">
+          <span>EscapezCore-modules</span>
+          <HelpTip label="Uitleg EscapezCore-modules" wide>
+            <p>
+              Aan/uit schakelt de module in EscapezCore (soft-reload). De backend
+              proxyt naar Core; de browser stuurt geen geheimen.
+            </p>
+            <ul>
+              <li>
+                <strong>Gesynchroniseerd met Core</strong> — live status van Core.
+              </li>
+              <li>
+                <strong>Lokaal / pending</strong> — opgeslagen in het panel; sync
+                volgt wanneer Core bereikbaar is of CORE_API_BASE niet op off staat.
+              </li>
+            </ul>
+          </HelpTip>
+        </h2>
         <p className="settings-section-desc">
           Stabiele ids: scoreboard, tips, vote, resourcepack, reports,
           staffchat, items. Wijzigingen proxied naar EscapezCore met soft-reload;
@@ -365,7 +383,24 @@ export function SettingsPage() {
       </div>
 
       <div className="page__card settings-ptero">
-        <h2 className="settings-section-title">Pterodactyl</h2>
+        <h2 className="settings-section-title settings-section-title-row">
+          <span>Pterodactyl</span>
+          <HelpTip label="Uitleg Pterodactyl-instellingen" wide>
+            <p>
+              Keys maak je in het Pterodactyl-panel onder Account, API Credentials.
+              Application-keys (vaak ptla) voor serverlijst; Client-keys (ptlc) voor
+              power en resources.
+            </p>
+            <p>
+              Keys gaan alleen naar de Nest-backend en worden nooit teruggelezen in
+              de browser (write-only). Geen geheimen in localStorage.
+            </p>
+            <p>
+              <strong>Test verbinding</strong> laat de backend de Application API
+              aanroepen; de UI toont alleen ok of fout — geen key-waarden.
+            </p>
+          </HelpTip>
+        </h2>
         <p className="settings-section-desc">
           Application API voor serverlijst. API-keys zijn write-only: bij
           opslaan stuur je een nieuwe key, de API geeft nooit plaintext terug
@@ -431,9 +466,17 @@ export function SettingsPage() {
         ) : null}
 
         <form className="settings-ptero__form" onSubmit={onPteroSave}>
-          <label className="server-label" htmlFor="ptero-url">
-            Panel-URL
-          </label>
+          <LabelWithHelp
+            htmlFor="ptero-url"
+            text="Panel-URL"
+            helpLabel="Uitleg Panel-URL"
+            help={
+              <p>
+                Basis-URL van je Pterodactyl-panel, bv. https://panel.example.com
+                (zonder pad). Geen API-sleutel in deze URL.
+              </p>
+            }
+          />
           <input
             id="ptero-url"
             className="server-input"
@@ -443,9 +486,17 @@ export function SettingsPage() {
             autoComplete="off"
           />
 
-          <label className="server-label" htmlFor="ptero-key">
-            Application API-key (write-only)
-          </label>
+          <LabelWithHelp
+            htmlFor="ptero-key"
+            text="Application API-key (write-only)"
+            helpLabel="Uitleg Application API-key"
+            help={
+              <p>
+                Application API-sleutel uit Pterodactyl. Nodig voor serverlijst.
+                Leeg laten bij opslaan behoudt de bestaande sleutel op de backend.
+              </p>
+            }
+          />
           <input
             id="ptero-key"
             className="server-input"
@@ -460,9 +511,17 @@ export function SettingsPage() {
             autoComplete="new-password"
           />
 
-          <label className="server-label" htmlFor="ptero-client-key">
-            Client API-key (optioneel, power/resources)
-          </label>
+          <LabelWithHelp
+            htmlFor="ptero-client-key"
+            text="Client API-key (optioneel, power/resources)"
+            helpLabel="Uitleg Client API-key"
+            help={
+              <p>
+                Client API-sleutel voor power-acties en resources. Optioneel;
+                zonder Client-sleutel blijven power/status stubs of beperkt.
+              </p>
+            }
+          />
           <input
             id="ptero-client-key"
             className="server-input"
@@ -477,9 +536,17 @@ export function SettingsPage() {
             autoComplete="new-password"
           />
 
-          <label className="server-label" htmlFor="ptero-server">
-            Default server identifier (optioneel)
-          </label>
+          <LabelWithHelp
+            htmlFor="ptero-server"
+            text="Default server identifier (optioneel)"
+            helpLabel="Uitleg default server"
+            help={
+              <p>
+                Korte identifier van de standaard gameserver in Pterodactyl
+                (geen wachtwoord). Gebruikt als default voor status/power.
+              </p>
+            }
+          />
           <input
             id="ptero-server"
             className="server-input"
@@ -511,6 +578,12 @@ export function SettingsPage() {
                 ? 'Testen…'
                 : 'Verbinding testen'}
             </button>
+            <HelpTip label="Uitleg verbinding testen">
+              <p>
+                Roept vanaf de backend de Pterodactyl Application API aan.
+                Sleutels blijven op de server; de browser ziet alleen of de test slaagde.
+              </p>
+            </HelpTip>
           </div>
         </form>
       </div>

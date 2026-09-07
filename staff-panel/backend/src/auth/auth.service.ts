@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { RateLimitService } from '../common/rate-limit.service';
 import { Permission } from '../rbac/permissions';
 import { RbacStore } from '../rbac/rbac.store';
 
@@ -18,66 +19,23 @@ export interface StaffSession {
 /**
  * Local-demo auth: HttpOnly cookie sessions + bcrypt against RbacStore users.
  * No JWT in localStorage. Effective permissions = union of assigned roles.
+ * Rate limiting for login is handled by RateLimitGuard (FASE 16).
  */
 @Injectable()
 export class AuthService {
   private readonly sessions = new Map<string, StaffSession>();
 
-  /** Simple in-memory rate limit: IP/username → attempts */
-  private readonly loginAttempts = new Map<
-    string,
-    { count: number; resetAt: number }
-  >();
-  private readonly maxAttempts = 10;
-  private readonly windowMs = 60_000;
-
   constructor(
     private readonly config: ConfigService,
     private readonly rbac: RbacStore,
+    private readonly rateLimit: RateLimitService,
   ) {}
-
-  assertNotRateLimited(key: string): void {
-    const now = Date.now();
-    const entry = this.loginAttempts.get(key);
-    if (!entry || now > entry.resetAt) {
-      this.loginAttempts.set(key, {
-        count: 0,
-        resetAt: now + this.windowMs,
-      });
-      return;
-    }
-    if (entry.count >= this.maxAttempts) {
-      throw new UnauthorizedException(
-        'Te veel pogingen. Probeer later opnieuw.',
-      );
-    }
-  }
-
-  private recordAttempt(key: string, success: boolean): void {
-    const now = Date.now();
-    const entry = this.loginAttempts.get(key) ?? {
-      count: 0,
-      resetAt: now + this.windowMs,
-    };
-    if (now > entry.resetAt) {
-      entry.count = 0;
-      entry.resetAt = now + this.windowMs;
-    }
-    if (success) {
-      this.loginAttempts.delete(key);
-      return;
-    }
-    entry.count += 1;
-    this.loginAttempts.set(key, entry);
-  }
 
   async login(
     username: string,
     password: string,
-    rateKey = 'global',
+    rateKey?: string,
   ): Promise<{ sessionId: string; session: StaffSession }> {
-    this.assertNotRateLimited(rateKey);
-
     const user = this.rbac.findUserByUsername(username.trim());
     let ok = false;
     if (user) {
@@ -90,9 +48,12 @@ export class AuthService {
       }
     }
 
-    this.recordAttempt(rateKey, ok);
     if (!ok || !user) {
       throw new UnauthorizedException('Ongeldige inloggegevens');
+    }
+
+    if (rateKey) {
+      this.rateLimit.reset(rateKey);
     }
 
     const permissions = this.rbac.effectivePermissions(user.roleIds);
@@ -175,6 +136,14 @@ export class AuthService {
     return Number(
       this.config.get<string>('SESSION_MAX_AGE_MS', '86400000'),
     );
+  }
+
+  /** Secure cookie when SESSION_COOKIE_SECURE=true or NODE_ENV=production. */
+  cookieSecure(): boolean {
+    const flag = this.config.get<string>('SESSION_COOKIE_SECURE', '');
+    if (flag === 'true' || flag === '1') return true;
+    if (flag === 'false' || flag === '0') return false;
+    return this.config.get<string>('NODE_ENV', 'development') === 'production';
   }
 
   private createSessionId(): string {

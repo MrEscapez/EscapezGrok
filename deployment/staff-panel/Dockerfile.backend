@@ -1,0 +1,19 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY staff-panel/backend/package.json staff-panel/backend/package-lock.json ./
+RUN npm ci
+COPY staff-panel/backend/ ./
+RUN npm run build && npm prune --omit=dev
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup -S escapez && adduser -S escapez -G escapez
+COPY --from=build /app/package.json /app/package-lock.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/data ./data
+RUN mkdir -p /app/data && chown -R escapez:escapez /app
+USER escapez
+EXPOSE 3000
+CMD ["node", "dist/main.js"]

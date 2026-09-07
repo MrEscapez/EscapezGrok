@@ -62,3 +62,6 @@ Full planner engine / persistence, LiteBans deep integration. No secrets/RCON/Pt
 - `can('server:power')` helper in `src/lib/permissions.ts` + `useCan()`.
 - Users page: `/users` (Dutch) — list, assign roles, create user, role permission matrix.
 - Backend still enforces all mutations; UI hide is not security.
+
+## FASE 16
+Dutch HelpTip (?) on Settings, Server, Users. Vitest for permissions helper.

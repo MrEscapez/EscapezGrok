@@ -14,6 +14,7 @@ import { SettingsModule } from './settings/settings.module';
 import { ServerModule } from './server/server.module';
 import { UsersModule } from './users/users.module';
 import { RbacModule } from './rbac/rbac.module';
+import { CommonModule } from './common/common.module';
 import { SessionAuthGuard } from './rbac/session-auth.guard';
 import { PermissionsGuard } from './rbac/permissions.guard';
 
@@ -23,6 +24,7 @@ import { PermissionsGuard } from './rbac/permissions.guard';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    CommonModule,
     RbacModule,
     HealthModule,
     AuthModule,

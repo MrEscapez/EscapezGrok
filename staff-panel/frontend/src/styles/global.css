@@ -1568,3 +1568,84 @@ button {
 .table-wrap {
   overflow-x: auto;
 }
+
+/* —— HelpTip (FASE 16) —— */
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+}
+
+.help-tip__btn {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 125, 255, 0.55);
+  background: rgba(45, 125, 255, 0.12);
+  color: #9ec1ff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0;
+  box-shadow: var(--neon-glow-blue);
+}
+
+.help-tip__btn:hover,
+.help-tip__btn:focus-visible {
+  border-color: rgba(255, 45, 85, 0.65);
+  color: #fff;
+  box-shadow: var(--neon-glow-red);
+  outline: none;
+}
+
+.help-tip__panel {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  min-width: 16rem;
+  max-width: min(22rem, 80vw);
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(45, 125, 255, 0.4);
+  background: #0a0a14;
+  box-shadow: var(--neon-glow-blue), 0 8px 24px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.help-tip--wide .help-tip__panel {
+  min-width: 18rem;
+  max-width: min(28rem, 88vw);
+}
+
+.help-tip__panel p {
+  margin: 0 0 0.5rem;
+}
+
+.help-tip__panel p:last-child {
+  margin-bottom: 0;
+}
+
+.help-tip__panel ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.settings-section-title-row,
+.dash-card__title-row,
+.page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}

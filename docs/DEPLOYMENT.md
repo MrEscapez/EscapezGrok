@@ -1,8 +1,8 @@
-# Deployment
+# Deployment / Deployment
 
-EscapezCore is a Paper plugin jar. Staff Panel, RCON automation, and full panel compose are documented separately under `staff-panel/` and `deployment/`.
+EscapezCore is a Paper plugin jar. Staff Panel production compose lives under `deployment/staff-panel/` and `deployment/docker-compose.staff-panel.yml`.
 
-## Runtime requirements
+## EscapezCore — runtime requirements
 
 | Component | Version / note |
 |-----------|----------------|
@@ -12,7 +12,7 @@ EscapezCore is a Paper plugin jar. Staff Panel, RCON automation, and full panel 
 | Optional DB | PostgreSQL (prod) or SQLite (dev) |
 | Optional bridge | Staff Panel Nest reachable from the game host |
 
-## Jar deploy (generic / bare metal)
+## EscapezCore — jar deploy (generic / bare metal)
 
 1. Build: `cd minecraft/escapezcore && ./gradlew build`
 2. Copy `build/libs/EscapezCore-0.1.8.jar` → server `plugins/`
@@ -21,7 +21,7 @@ EscapezCore is a Paper plugin jar. Staff Panel, RCON automation, and full panel 
 5. Start Paper; confirm EscapezCore enables in logs (no secrets printed).
 6. Configure `plugins/EscapezCore/*.yml` as needed; apply with `/ec admin reload`.
 
-## Pterodactyl / panel notes
+## EscapezCore — Pterodactyl / panel notes
 
 - Upload the jar via the panel file manager into `/plugins` (or mount the volume and copy).
 - Set startup image / Docker image to a **Java 21** Paper build for **1.21.10**.
@@ -31,7 +31,7 @@ EscapezCore is a Paper plugin jar. Staff Panel, RCON automation, and full panel 
 - Bind the inbound API to `127.0.0.1` unless the Staff Panel process shares a private network; open port **8765** only inside that network.
 - Prefer a graceful restart over forcing Bukkit `/reload` after jar swaps.
 
-## Environment variables
+## EscapezCore — environment variables
 
 See `deployment/.env.example` for placeholders. Core-relevant keys:
 
@@ -46,12 +46,41 @@ ESCAPEZ_HMAC_SECRET=CHANGE_ME
 
 Staff Panel should use the matching `BRIDGE_API_KEY=CHANGE_ME` (same value as `ESCAPEZ_API_KEY`).
 
-## Health checks
+## EscapezCore — health checks
 
 - In-game: `/ec admin hooks`, `/ec admin api` (stealth; requires `escapezcore.admin`).
 - Inbound (when enabled): `GET http://127.0.0.1:8765/api/v1/health` with `X-Escapez-Api-Key`.
 - Database down → Core still runs; reports fall back per `reports.persistence`.
 
-## Out of scope here
+## Staff Panel FASE 16
 
-Staff Panel frontend/backend deploy, RCON credentials, and Pterodactyl client API tokens belong to the Staff Panel deployment docs — never embed those secrets in EscapezCore configs.
+### Stack
+
+Compose file: `deployment/docker-compose.staff-panel.yml` (postgres, backend, frontend).  
+Env template: `deployment/staff-panel/.env.example` (copy to `.env`; replace `CHANGE_ME`).  
+Bring-up from repo root with that env-file and compose file (`up -d --build`).  
+Frontend host **8080**; `/api` to Nest; Postgres host **5433**.
+
+### First admin
+
+`STAFF_BOOTSTRAP_USERNAME` / `STAFF_BOOTSTRAP_PASSWORD` (demo `admin` / `CHANGE_ME`).  
+Change before shared hosts. Optional `STAFF_SEED_HELPER` + `STAFF_HELPER_*`.  
+Rotate `SESSION_SECRET` and `BRIDGE_API_KEY` for production.
+
+### Env vars
+
+`SESSION_SECRET`, `SESSION_COOKIE_SECURE`, `STAFF_BOOTSTRAP_*`, `BRIDGE_API_KEY`,  
+`CORE_API_BASE` (code default port 8765; off = local modules only),  
+`RCON_*`, `PTERO_*`, `POSTGRES_*` — see `staff-panel/backend/.env.example`.  
+Frontend only `VITE_API_URL` — no secrets in the client.
+
+### HTTPS checklist
+
+TLS at edge. `SESSION_COOKIE_SECURE=true`. Forward `X-Forwarded-Proto`.  
+Same-site SPA and `/api`. See `docs/SECURITY.md`.
+
+### Verify
+
+Backend and frontend: install deps, run the test script, then build.
+
+No secrets in git. Wijzig demo `CHANGE_ME` voor productie. / Change demo `CHANGE_ME` before production.

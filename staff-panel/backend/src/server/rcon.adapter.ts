@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { scrubSecrets } from '../common/scrub';
 
 export type RconSendResult = {
   ok: boolean;
@@ -92,9 +93,9 @@ export class RconAdapter {
       const msg = err instanceof Error ? err.message : 'unknown error';
       // Never include password in error text returned upstream
       const safe =
-        msg.replace(this.password(), '[redacted]').slice(0, 200) ||
+        scrubSecrets(msg.replace(this.password(), '[REDACTED]')).slice(0, 200) ||
         'RCON-verbinding mislukt';
-      this.logger.warn(`RCON failed for '${sanitized}': ${safe}`);
+      this.logger.warn(scrubSecrets(`RCON failed for '${sanitized}': ${safe}`));
       return {
         ok: false,
         stub: false,
