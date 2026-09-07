@@ -1,0 +1,103 @@
+name: EscapezCore
+version: '${version}'
+main: be.escapezcraft.escapezcore.EscapezCorePlugin
+api-version: '1.21'
+author: birger147
+description: EscapezCraft core plugin — GUI, commands, hooks, optional database
+website: https://example.com/escapezcraft
+softdepend:
+  - LuckPerms
+  - Vault
+  - PlaceholderAPI
+  - LiteBans
+  - WorldGuard
+  - Lands
+  - McMMO
+  - ItemsAdder
+  - Nexo
+  - ExcellentCrates
+  - CoreProtect
+  - ProtocolLib
+  - CMI
+
+commands:
+  ec:
+    description: EscapezCore hoofdcommando — opent de GUI of toont help
+    usage: /ec [help|admin]
+    aliases: [escapezcore, escapez]
+  discord:
+    description: Toon de Discord-link
+    usage: /discord
+  website:
+    description: Toon de website-link
+    usage: /website
+  vote:
+    description: Toon de vote-link
+    usage: /vote
+  shop:
+    description: Toon de shop-link
+    usage: /shop
+  regels:
+    description: Toon de serverregels-link
+    usage: /regels
+  staff:
+    description: Toon de staff-informatie-link
+    usage: /staff
+
+permissions:
+  escapezcore.command.*:
+    description: Alle EscapezCore basiscommando's
+    default: true
+    children:
+      escapezcore.command.ec: true
+      escapezcore.command.discord: true
+      escapezcore.command.website: true
+      escapezcore.command.vote: true
+      escapezcore.command.shop: true
+      escapezcore.command.regels: true
+      escapezcore.command.staff: true
+  escapezcore.command.ec:
+    description: Gebruik /ec
+    default: true
+  escapezcore.command.discord:
+    description: Gebruik /discord
+    default: true
+  escapezcore.command.website:
+    description: Gebruik /website
+    default: true
+  escapezcore.command.vote:
+    description: Gebruik /vote
+    default: true
+  escapezcore.command.shop:
+    description: Gebruik /shop
+    default: true
+  escapezcore.command.regels:
+    description: Gebruik /regels
+    default: true
+  escapezcore.command.staff:
+    description: Gebruik /staff
+    default: true
+  escapezcore.command.report:
+    description: Gebruik report-functionaliteit
+    default: true
+  escapezcore.staff:
+    description: Staff-rechten
+    default: op
+  escapezcore.staffchat:
+    description: Staffchat gebruiken
+    default: op
+  escapezcore.admin:
+    description: Volledige admin-toegang tot /ec admin (verborgen zonder deze perm)
+    default: op
+    children:
+      escapezcore.admin.gui: true
+      escapezcore.admin.reload: true
+  escapezcore.admin.gui:
+    description: Admin GUI openen
+    default: op
+  escapezcore.admin.reload:
+    description: Config/messages/commands/aliases/gui herladen
+    default: op
+  escapezcore.cooldown.bypass:
+    description: Cooldowns omzeilen
+    default: op

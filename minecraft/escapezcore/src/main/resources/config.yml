@@ -1,0 +1,23 @@
+# EscapezCore hoofdconfiguratie
+# config-version wordt gebruikt voor merge van defaults bij upgrades
+config-version: 1
+
+prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
+
+database:
+  # Optioneel — plugin start altijd zonder database als enabled: false
+  enabled: false
+  jdbc-url: "jdbc:postgresql://127.0.0.1:5432/escapezcraft"
+  username: "escapez"
+  password: "CHANGE_ME"
+  pool-size: 5
+  # Nooit wachtwoorden loggen
+
+debug: false
+
+cooldowns:
+  default-seconds: 3
+  info-commands-seconds: 5
+
+gui:
+  open-on-ec: true

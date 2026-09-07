@@ -1,0 +1,9 @@
+# Extra aliases (naast plugin.yml) — mapping alias -> target command name
+# Wordt bij reload opnieuw gelezen; registratie is soft (documentatie + lookup)
+dc: discord
+web: website
+site: website
+stem: vote
+store: shop
+rules: regels
+team: staff

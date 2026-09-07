@@ -1,0 +1,81 @@
+# Basis EscapezCore GUI
+main:
+  title: "<gradient:#00E5FF:#7C4DFF><bold>EscapezCraft</bold></gradient>"
+  size: 27
+  items:
+    discord:
+      slot: 11
+      material: ENDER_PEARL
+      name: "<aqua><bold>Discord</bold></aqua>"
+      lore:
+        - "<gray>Join onze community</gray>"
+        - "<dark_gray>Klik voor de link</dark_gray>"
+      action: command
+      command: discord
+    website:
+      slot: 12
+      material: BOOK
+      name: "<green><bold>Website</bold></green>"
+      lore:
+        - "<gray>Bezoek onze website</gray>"
+      action: command
+      command: website
+    vote:
+      slot: 13
+      material: GOLDEN_APPLE
+      name: "<gold><bold>Vote</bold></gold>"
+      lore:
+        - "<gray>Steun de server</gray>"
+      action: command
+      command: vote
+    shop:
+      slot: 14
+      material: EMERALD
+      name: "<yellow><bold>Shop</bold></yellow>"
+      lore:
+        - "<gray>Bekijk de webshop</gray>"
+      action: command
+      command: shop
+    regels:
+      slot: 15
+      material: WRITABLE_BOOK
+      name: "<red><bold>Regels</bold></red>"
+      lore:
+        - "<gray>Lees de serverregels</gray>"
+      action: command
+      command: regels
+    close:
+      slot: 22
+      material: BARRIER
+      name: "<red>Sluiten</red>"
+      lore:
+        - "<gray>Sluit dit menu</gray>"
+      action: close
+
+admin:
+  title: "<red><bold>EscapezCore Admin</bold></red>"
+  size: 27
+  permission: escapezcore.admin.gui
+  items:
+    reload:
+      slot: 11
+      material: REDSTONE
+      name: "<yellow>Herladen</yellow>"
+      lore:
+        - "<gray>Herlaad messages/commands/aliases/gui</gray>"
+        - "<dark_gray>Geen Bukkit reload</dark_gray>"
+      action: admin
+      admin-action: reload
+    debug:
+      slot: 13
+      material: SPYGLASS
+      name: "<aqua>Debug toggle</aqua>"
+      lore:
+        - "<gray>Schakel debug-logging</gray>"
+      action: admin
+      admin-action: debug
+    close:
+      slot: 22
+      material: BARRIER
+      name: "<red>Sluiten</red>"
+      action: close

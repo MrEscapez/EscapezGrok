@@ -1,0 +1,26 @@
+# Build
+**/build/
+**/.gradle/
+**/node_modules/
+**/dist/
+**/.vite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+
+# Secrets
+.env
+**/.env
+**/secrets/
+*.pem
+
+# Logs
+*.log
+
+# Minecraft
+**/logs/
+**/world*/

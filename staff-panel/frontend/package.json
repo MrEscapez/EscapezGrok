@@ -1,0 +1,10 @@
+{
+  "name": "escapezcraft-staff-panel-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "EscapezCraft Staff Panel frontend stub — not implemented in FASE 2",
+  "scripts": {
+    "dev": "echo \"Staff panel frontend not implemented yet\"",
+    "build": "echo \"Staff panel frontend not implemented yet\""
+  }
+}
