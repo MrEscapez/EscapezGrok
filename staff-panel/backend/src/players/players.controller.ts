@@ -1,11 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { Permissions } from '../rbac/permissions';
+import { RequirePermissions } from '../rbac/require-permissions.decorator';
 
-/**
- * Thin stub for spelerzoeken — returns empty list until EscapezCore/Postgres is wired.
- */
 @Controller('players')
 export class PlayersController {
   @Get()
+  @RequirePermissions(Permissions.PLAYERS_VIEW)
   list(
     @Query('q') q?: string,
   ): {
@@ -17,7 +17,6 @@ export class PlayersController {
     query: string;
   } {
     const query = (q ?? '').trim();
-    // Stub: always empty until real player store exists
     void query;
     return { items: [], query };
   }

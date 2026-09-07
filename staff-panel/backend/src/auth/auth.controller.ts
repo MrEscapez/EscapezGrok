@@ -9,6 +9,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { Public } from '../rbac/public.decorator';
+import type { StaffRequest } from '../rbac/staff-request';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -16,6 +18,7 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @Public()
   @Post('login')
   @HttpCode(200)
   async login(
@@ -37,7 +40,7 @@ export class AuthController {
     res.cookie(this.auth.cookieName(), sessionId, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: false, // set true behind HTTPS in production
+      secure: false,
       maxAge: this.auth.cookieMaxAgeMs(),
       path: '/',
     });
@@ -48,10 +51,12 @@ export class AuthController {
         id: session.userId,
         username: session.username,
         permissions: session.permissions,
+        roleIds: session.roleIds,
       },
     };
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(200)
   logout(
@@ -67,18 +72,18 @@ export class AuthController {
   }
 
   @Get('me')
-  me(@Req() req: Request) {
-    const sessionId = req.cookies?.[this.auth.cookieName()] as
-      | string
-      | undefined;
-    const session = this.auth.getSession(sessionId);
+  me(@Req() req: StaffRequest) {
+    const session = req.staffSession;
     if (!session) {
       throw new UnauthorizedException('Niet ingelogd');
     }
+    const fresh =
+      this.auth.refreshSessionPermissions(req.staffSessionId) ?? session;
     return {
-      id: session.userId,
-      username: session.username,
-      permissions: session.permissions,
+      id: fresh.userId,
+      username: fresh.username,
+      permissions: fresh.permissions,
+      roleIds: fresh.roleIds,
     };
   }
 }

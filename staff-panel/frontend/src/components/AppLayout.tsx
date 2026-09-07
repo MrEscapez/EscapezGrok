@@ -3,18 +3,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useMeQuery } from '../hooks/useMeQuery';
 import { logout } from '../lib/api';
+import { can } from '../lib/permissions';
 
-const NAV_ITEMS: { to: string; label: string }[] = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/players', label: 'Spelers' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/punishments', label: 'Straffen' },
-  { to: '/tickets', label: 'Tickets' },
-  { to: '/appeals', label: 'Appeals' },
-  { to: '/planner', label: 'Planner' },
-  { to: '/server', label: 'Server' },
-  { to: '/audit', label: 'Audit' },
-  { to: '/settings', label: 'Instellingen' },
+const NAV_ITEMS: { to: string; label: string; permission: string }[] = [
+  { to: '/dashboard', label: 'Dashboard', permission: 'dashboard:view' },
+  { to: '/players', label: 'Spelers', permission: 'players:view' },
+  { to: '/reports', label: 'Reports', permission: 'reports:view' },
+  { to: '/punishments', label: 'Straffen', permission: 'punishments:view' },
+  { to: '/tickets', label: 'Tickets', permission: 'tickets:view' },
+  { to: '/appeals', label: 'Appeals', permission: 'appeals:view' },
+  { to: '/planner', label: 'Planner', permission: 'planner:view' },
+  { to: '/server', label: 'Server', permission: 'server:view' },
+  { to: '/audit', label: 'Audit', permission: 'audit:view' },
+  { to: '/users', label: 'Gebruikers', permission: 'users:view' },
+  { to: '/settings', label: 'Instellingen', permission: 'settings:view' },
 ];
 
 export function AppLayout() {
@@ -33,6 +35,10 @@ export function AppLayout() {
   });
 
   const username = meQuery.data?.username ?? '…';
+  const permissions = meQuery.data?.permissions;
+  const visibleNav = NAV_ITEMS.filter((item) =>
+    can(permissions, item.permission),
+  );
 
   return (
     <div className="app-shell">
@@ -48,7 +54,7 @@ export function AppLayout() {
           </div>
         </div>
         <nav className="sidebar__nav">
-          {NAV_ITEMS.map((item) => (
+          {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

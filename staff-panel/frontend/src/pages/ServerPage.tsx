@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCan } from '../hooks/useMeQuery';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
@@ -48,6 +49,9 @@ function pteroPowerNl(power: string): string {
 type Feedback = { kind: 'ok' | 'warn' | 'error'; message: string };
 
 export function ServerPage() {
+  const can = useCan();
+  const canPower = can('server:power');
+  const canCommand = can('server:command');
   const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [confirmAction, setConfirmAction] = useState<ServerPowerAction | null>(
@@ -362,7 +366,7 @@ export function ServerPage() {
         </div>
         <p className="dash-card__hint">
           Stoppen en herstarten vereisen bevestiging + recht{' '}
-          <code>server:restart</code>.
+          <code>server:power</code>.
         </p>
         <div className="server-power-btns">
           {(['start', 'stop', 'restart'] as ServerPowerAction[]).map(
@@ -378,7 +382,7 @@ export function ServerPage() {
                       : 'server-btn server-btn--restart'
                 }
                 onClick={() => requestPower(action)}
-                disabled={powerMutation.isPending}
+                disabled={powerMutation.isPending || !canPower}
               >
                 {POWER_LABELS[action]}
               </button>
@@ -435,7 +439,7 @@ export function ServerPage() {
           <button
             type="submit"
             className="server-btn server-btn--primary"
-            disabled={rconMutation.isPending || !rconCommand.trim()}
+            disabled={rconMutation.isPending || !rconCommand.trim() || !canCommand}
           >
             {rconMutation.isPending ? 'Verzenden…' : 'Verstuur RCON'}
           </button>
@@ -475,7 +479,7 @@ export function ServerPage() {
                   setConfirmAction(null);
                   setPowerTarget(undefined);
                 }}
-                disabled={powerMutation.isPending}
+                disabled={powerMutation.isPending || !canPower}
               >
                 Annuleren
               </button>
@@ -483,7 +487,7 @@ export function ServerPage() {
                 type="button"
                 className="server-btn server-btn--stop"
                 onClick={() => powerMutation.mutate(confirmAction)}
-                disabled={powerMutation.isPending}
+                disabled={powerMutation.isPending || !canPower}
               >
                 {powerMutation.isPending
                   ? 'Bezig…'

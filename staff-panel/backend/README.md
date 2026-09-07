@@ -1,6 +1,6 @@
 # EscapezCraft Staff Panel — Backend
 
-NestJS + TypeScript API (FASE 11–15 stubs + settings modules + RCON/Pterodactyl).
+NestJS + TypeScript API (FASE 11–15 + RBAC roles/permissions + settings + RCON/Pterodactyl).
 
 ## Setup
 
@@ -77,7 +77,7 @@ Seeds one DRAFT week (current Monday) with demo shifts on boot.
 
 Optional env → stub when missing/`CHANGE_ME`. Real RCON via `rcon-client` when configured.
 
-RBAC: `server:view` (status), `server:command` (RCON), `server:restart` (power).
+RBAC: `server:view` (status), `console:read` (safe list), `server:command` (RCON), `server:power` (power). Legacy `server:restart` maps to `server:power`.
 
 - GET /api/v1/server/status → power, players?, source, rconConfigured, pteroConfigured (no secrets)
 - POST /api/v1/server/power `{ action: start|stop|restart, confirm: true }` — requires confirm + `server:restart`
@@ -102,3 +102,27 @@ RBAC: `server:view` (status), `server:command` (RCON), `server:restart` (power).
 ## Out of scope
 
 Full planner engine / persistence, LiteBans deep integration, real secrets in repo, minecraft Java.
+
+
+## RBAC (roles & permissions)
+
+Backend-enforced via global `SessionAuthGuard` + `PermissionsGuard` and `@RequirePermissions(...)`.
+Store: in-memory + `data/rbac.json` (gitignored). Seed roles:
+
+| Role | Notes |
+|------|--------|
+| `admin` | All permissions |
+| `moderator` | View most + manage reports/punishments/tickets/appeals; no `settings:manage` / `users:manage` / `server:power` / `planner:publish` |
+| `helper` | `dashboard:view`, `players:view`, `reports:view`, `tickets:view` |
+
+Seed users (bcrypt): `admin` / `CHANGE_ME` (admin role); optional `helper` / `CHANGE_ME` (see `.env.example`).
+
+Users API (staff cookie + `users:view` / `users:manage`):
+
+- GET `/api/v1/users`
+- POST `/api/v1/users`
+- PATCH `/api/v1/users/:id` (roles, optional password reset stub)
+- GET `/api/v1/roles` (+ permission catalog)
+- PUT `/api/v1/roles/:id/permissions`
+
+`GET /auth/me` returns effective permissions (union of roles). Health + auth login/logout are public; bridge keeps API key.

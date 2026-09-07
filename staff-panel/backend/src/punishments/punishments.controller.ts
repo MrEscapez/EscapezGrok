@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
+import { Permissions } from '../rbac/permissions';
+import { RequirePermissions } from '../rbac/require-permissions.decorator';
 
-/**
- * Thin stub for straffen (bans/mutes/warns) — empty until LiteBans/EscapezCore.
- */
 @Controller('punishments')
 export class PunishmentsController {
   @Get()
+  @RequirePermissions(Permissions.PUNISHMENTS_VIEW)
   list(): {
     items: Array<{
       id: string;

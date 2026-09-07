@@ -8,88 +8,75 @@ import {
   Put,
   Query,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
-import { AuthService, StaffSession } from '../auth/auth.service';
+import { Permissions } from '../rbac/permissions';
+import { RequirePermissions } from '../rbac/require-permissions.decorator';
+import type { StaffRequest } from '../rbac/staff-request';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateShiftsDto } from './dto/update-shifts.dto';
 import { PlannerService } from './planner.service';
 
 @Controller('planner')
 export class PlannerController {
-  constructor(
-    private readonly planner: PlannerService,
-    private readonly auth: AuthService,
-  ) {}
+  constructor(private readonly planner: PlannerService) {}
 
-  private requireSession(req: Request): StaffSession {
-    const sessionId = req.cookies?.[this.auth.cookieName()] as
-      | string
-      | undefined;
-    const session = this.auth.getSession(sessionId);
-    if (!session) {
-      throw new UnauthorizedException('Niet ingelogd');
-    }
-    return session;
+  private username(req: StaffRequest): string {
+    return req.staffSession?.username ?? 'unknown';
   }
 
   @Get('schedules')
-  listSchedules(
-    @Req() req: Request,
-    @Query('weekStart') weekStart?: string,
-  ) {
-    this.requireSession(req);
+  @RequirePermissions(Permissions.PLANNER_VIEW)
+  listSchedules(@Query('weekStart') weekStart?: string) {
     const items = this.planner.listOrGetByWeek(weekStart);
     return { items };
   }
 
   @Get('schedules/:id')
-  getSchedule(@Req() req: Request, @Param('id') id: string) {
-    this.requireSession(req);
+  @RequirePermissions(Permissions.PLANNER_VIEW)
+  getSchedule(@Param('id') id: string) {
     return this.planner.getById(id);
   }
 
   @Post('schedules')
   @HttpCode(200)
-  createSchedule(@Req() req: Request, @Body() body: CreateScheduleDto) {
-    const session = this.requireSession(req);
-    return this.planner.createDraft(body.weekStart, session.username);
+  @RequirePermissions(Permissions.PLANNER_MANAGE)
+  createSchedule(@Req() req: StaffRequest, @Body() body: CreateScheduleDto) {
+    return this.planner.createDraft(body.weekStart, this.username(req));
   }
 
   @Put('schedules/:id/shifts')
+  @RequirePermissions(Permissions.PLANNER_MANAGE)
   updateShifts(
-    @Req() req: Request,
+    @Req() req: StaffRequest,
     @Param('id') id: string,
     @Body() body: UpdateShiftsDto,
   ) {
-    const session = this.requireSession(req);
     return this.planner.replaceShifts(
       id,
       body.version,
       body.shifts,
-      session.username,
+      this.username(req),
     );
   }
 
   @Post('schedules/:id/validate')
   @HttpCode(200)
-  validate(@Req() req: Request, @Param('id') id: string) {
-    this.requireSession(req);
+  @RequirePermissions(Permissions.PLANNER_VIEW)
+  validate(@Param('id') id: string) {
     return this.planner.validate(id);
   }
 
   @Post('schedules/:id/publish')
   @HttpCode(200)
-  publish(@Req() req: Request, @Param('id') id: string) {
-    const session = this.requireSession(req);
-    return this.planner.publish(id, session.username);
+  @RequirePermissions(Permissions.PLANNER_PUBLISH)
+  publish(@Req() req: StaffRequest, @Param('id') id: string) {
+    return this.planner.publish(id, this.username(req));
   }
 
   @Post('schedules/:id/draft')
   @HttpCode(200)
-  revertDraft(@Req() req: Request, @Param('id') id: string) {
-    const session = this.requireSession(req);
-    return this.planner.revertToDraft(id, session.username);
+  @RequirePermissions(Permissions.PLANNER_MANAGE)
+  revertDraft(@Req() req: StaffRequest, @Param('id') id: string) {
+    return this.planner.revertToDraft(id, this.username(req));
   }
 }

@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
+import { Permissions } from '../rbac/permissions';
+import { RequirePermissions } from '../rbac/require-permissions.decorator';
 
-/**
- * Thin stub for reports list — empty until EscapezCore API is connected.
- */
 @Controller('reports')
 export class ReportsController {
   @Get()
+  @RequirePermissions(Permissions.REPORTS_VIEW)
   list(): {
     items: Array<{
       id: string;
