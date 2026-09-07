@@ -1,9 +1,12 @@
-# Database
+# Database notes
 
-EscapezCore ships with an **optional** HikariCP PostgreSQL skeleton (`database.enabled: false` by default).
+EscapezCore (Paper plugin) owns Minecraft-side schema via **Flyway** migrations shipped in the plugin jar:
 
-- No main-thread SQL
-- Identity by UUID only
-- Full reports schema / Staff Panel DB is out of scope for this drop
+- `minecraft/escapezcore/src/main/resources/db/migration/postgresql/`
+- `minecraft/escapezcore/src/main/resources/db/migration/sqlite/`
 
-Never commit real credentials. See `deployment/.env.example`.
+History table: `escapez_schema_history`.
+
+Staff Panel schema (web users, auth, roles, tickets, appeals, planner) is **out of scope** for EscapezCore — own it in the panel backend only.
+
+Never commit real credentials. See `deployment/.env.example` (`ESCAPEZ_DB_PASSWORD`, etc.).

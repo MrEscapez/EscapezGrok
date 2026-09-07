@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3
+- FASE 6: Database layer — HikariCP pool hardening (size, timeouts, optional leak detection, pool name).
+- Flyway migrations for EscapezCore-owned tables only (`escapez_schema_history`); PostgreSQL + SQLite locations.
+- Tables: `minecraft_players`, `escapez_reports`, `player_preferences`, `command_cooldowns`, `staff_chat_logs`, `mc_audit_log`.
+- Async-only DB init/migrations — `enable()` never blocks; ready flags; ReportModule waits via `whenReady` (no main-thread join/get).
+- Secrets via `ESCAPEZ_DB_PASSWORD` (+ optional `ESCAPEZ_DB_URL` / `ESCAPEZ_DB_USER`); never logged.
+- UUID player identity upsert on join/quit; optional staffchat DB logging.
+- Graceful degrade when DB down (SQLite/file reports fallback). config-version 4.
+
 ## 0.1.2
 - FASE 5: player reports (`/report`, `/ec report`) with cooldown, statuses OPEN/IN_PROGRESS/RESOLVED/DISMISSED, staff notes, staff notify.
 - Report persistence: PostgreSQL when DatabaseModule/Hikari enabled; else SQLite (`reports.db`); else YAML file fallback (`reports.yml`). Async I/O, UUID identity.

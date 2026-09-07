@@ -74,3 +74,8 @@ staffchat-disabled: "<red>Staffchat is uitgeschakeld.</red>"
 staffchat-usage: "<gray>Gebruik: </gray><yellow>/sc [bericht]</yellow><gray> — zonder args schakel je toggle-modus.</gray>"
 staffchat-toggle-on: "<green>Staffchat-modus </green><white>AAN</white><green>. Je chat gaat naar staff (niet globaal).</green>"
 staffchat-toggle-off: "<yellow>Staffchat-modus </yellow><white>UIT</white><yellow>. Je chat weer normaal.</yellow>"
+
+
+# --- Database (FASE 6) ---
+database-unavailable: "<yellow>Database is momenteel niet beschikbaar. Sommige functies gebruiken lokale opslag.</yellow>"
+database-not-ready: "<yellow>Database is nog niet klaar. Probeer zo opnieuw.</yellow>"

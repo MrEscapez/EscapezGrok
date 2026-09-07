@@ -2,6 +2,8 @@ package be.escapezcraft.escapezcore.staffchat;
 
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.config.ConfigManager;
+import be.escapezcraft.escapezcore.database.DatabaseModule;
+import be.escapezcraft.escapezcore.database.StaffChatLogRepository;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.Module;
 import net.kyori.adventure.text.Component;
@@ -16,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Staffchat: /sc one-shot + toggle mode. Never leaks to global chat.
+ * Optionally appends to EscapezCore-owned staff_chat_logs when DatabaseModule is ready.
  */
 public final class StaffChatModule implements Module {
 
@@ -24,17 +27,20 @@ public final class StaffChatModule implements Module {
     private final EscapezCorePlugin plugin;
     private final ConfigManager configManager;
     private final MessagesService messages;
+    private final DatabaseModule databaseModule;
     private final Set<UUID> toggled = ConcurrentHashMap.newKeySet();
     private StaffChatListener listener;
 
     public StaffChatModule(
             EscapezCorePlugin plugin,
             ConfigManager configManager,
-            MessagesService messages
+            MessagesService messages,
+            DatabaseModule databaseModule
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.messages = messages;
+        this.databaseModule = databaseModule;
     }
 
     @Override
@@ -123,6 +129,27 @@ public final class StaffChatModule implements Module {
         if (configManager.getConfig().getBoolean("staffchat.log-to-console", true)) {
             plugin.getLogger().info("[StaffChat] " + sender.getName() + ": " + plainMessage);
         }
+
+        persistAsync(sender, plainMessage);
+    }
+
+    private void persistAsync(Player sender, String plainMessage) {
+        if (!configManager.getConfig().getBoolean("staffchat.log-to-database", true)) {
+            return;
+        }
+        if (databaseModule == null || !databaseModule.isReady()) {
+            return;
+        }
+        StaffChatLogRepository repo = databaseModule.getStaffChatLogRepository();
+        if (repo == null) {
+            return;
+        }
+        repo.append(sender.getUniqueId(), sender.getName(), plainMessage)
+                .whenComplete((ignored, error) -> {
+                    if (error != null) {
+                        plugin.debugLog("Staffchat DB log failed: " + error.getMessage());
+                    }
+                });
     }
 
     public MessagesService getMessages() {

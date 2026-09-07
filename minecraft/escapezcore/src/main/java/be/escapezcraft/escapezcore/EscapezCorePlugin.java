@@ -39,7 +39,7 @@ public final class EscapezCorePlugin extends JavaPlugin {
         this.commandModule = new CommandModule(this, configManager, messagesService, guiModule);
         this.reportModule = new ReportModule(
                 this, configManager, messagesService, databaseModule, commandModule.getCooldownService());
-        this.staffChatModule = new StaffChatModule(this, configManager, messagesService);
+        this.staffChatModule = new StaffChatModule(this, configManager, messagesService, databaseModule);
 
         // Give CommandModule access to report/staffchat after construction
         this.commandModule.wireFeatureModules(reportModule, staffChatModule);

@@ -3,6 +3,7 @@ package be.escapezcraft.escapezcore.report;
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.command.CooldownService;
 import be.escapezcraft.escapezcore.config.ConfigManager;
+import be.escapezcraft.escapezcore.database.DatabaseDialect;
 import be.escapezcraft.escapezcore.database.DatabaseModule;
 import be.escapezcraft.escapezcore.messages.MessagesService;
 import be.escapezcraft.escapezcore.module.Module;
@@ -14,8 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
- * Owns Minecraft player reports: repository selection (PG → SQLite → file) and service.
+ * Owns Minecraft player reports: repository selection (PG/SQLite via DatabaseModule → local SQLite → file).
  * Repository init is always asynchronous — never block the Paper main thread with join/get.
+ * Waits for DatabaseModule Flyway readiness without blocking {@link #enable()}.
  */
 public final class ReportModule implements Module {
 
@@ -58,10 +60,50 @@ public final class ReportModule implements Module {
         }
         service.setReady(false);
         int generation = initGeneration.incrementAndGet();
-        this.repository = openRepository();
-        service.setRepository(repository);
-        beginInitialize(repository, generation, true);
-        // Must return without blocking — init continues asynchronously.
+
+        String mode = persistenceMode();
+        boolean preferCentral = "postgres".equals(mode) || "postgresql".equals(mode) || "auto".equals(mode);
+
+        if (preferCentral && databaseModule != null && databaseModule.isConfigured()) {
+            plugin.getLogger().info("Reports wachten asynchroon op DatabaseModule (Flyway)…");
+            databaseModule.whenReady(success -> {
+                if (generation != initGeneration.get()) {
+                    return;
+                }
+                if (Boolean.TRUE.equals(success) && databaseModule.isReady()) {
+                    startWithCentralDatabase(generation);
+                } else {
+                    plugin.getLogger().warning(
+                            "Centrale database niet klaar voor reports — val terug op lokale opslag.");
+                    startWithLocalFallback(generation, mode);
+                }
+            });
+            // Must return without blocking — init continues asynchronously.
+            return;
+        }
+
+        startWithLocalFallback(generation, mode);
+    }
+
+    private void startWithCentralDatabase(int generation) {
+        JdbcReportRepository.Dialect dialect =
+                databaseModule.getDialect() == DatabaseDialect.SQLITE
+                        ? JdbcReportRepository.Dialect.SQLITE
+                        : JdbcReportRepository.Dialect.POSTGRES;
+        plugin.getLogger().info("Reports gebruiken centrale DB via DatabaseModule ("
+                + dialect.name().toLowerCase() + ", Flyway-schema).");
+        ReportRepository repo = new JdbcReportRepository(
+                plugin, databaseModule.getDataSource(), dialect, true);
+        this.repository = repo;
+        service.setRepository(repo);
+        beginInitialize(repo, generation, true);
+    }
+
+    private void startWithLocalFallback(int generation, String mode) {
+        ReportRepository repo = openLocalRepository(mode);
+        this.repository = repo;
+        service.setRepository(repo);
+        beginInitialize(repo, generation, true);
     }
 
     /**
@@ -95,27 +137,22 @@ public final class ReportModule implements Module {
         });
     }
 
-    private ReportRepository openRepository() {
+    private String persistenceMode() {
         String mode = configManager.getConfig().getString("reports.persistence", "auto");
         if (mode == null) {
             mode = "auto";
         }
-        mode = mode.toLowerCase();
+        return mode.toLowerCase();
+    }
 
-        if ("postgres".equals(mode) || "postgresql".equals(mode) || "auto".equals(mode)) {
-            if (databaseModule != null && databaseModule.isEnabled()) {
-                plugin.getLogger().info("Reports gebruiken PostgreSQL via DatabaseModule.");
-                return new JdbcReportRepository(
-                        plugin, databaseModule.getDataSource(), JdbcReportRepository.Dialect.POSTGRES);
-            }
-            if ("postgres".equals(mode) || "postgresql".equals(mode)) {
-                plugin.getLogger().warning(
-                        "reports.persistence=postgres maar database niet beschikbaar — val terug.");
-            }
-        }
-
+    private ReportRepository openLocalRepository(String mode) {
         if ("file".equals(mode)) {
             return new FileReportRepository(plugin, new File(plugin.getDataFolder(), "reports.yml"));
+        }
+
+        if ("postgres".equals(mode) || "postgresql".equals(mode)) {
+            plugin.getLogger().warning(
+                    "reports.persistence=postgres maar centrale database niet beschikbaar — val terug.");
         }
 
         // sqlite (default fallback for auto / sqlite)
@@ -131,9 +168,11 @@ public final class ReportModule implements Module {
             hikari.setMaximumPoolSize(2);
             hikari.setPoolName("EscapezCore-Reports-SQLite");
             hikari.setConnectionTimeout(10_000);
+            hikari.setInitializationFailTimeout(-1);
             this.sqlitePool = new HikariDataSource(hikari);
             plugin.getLogger().info("Reports gebruiken lokale SQLite: " + dbFile.getName());
-            return new JdbcReportRepository(plugin, sqlitePool, JdbcReportRepository.Dialect.SQLITE);
+            // Local reports.db is not Flyway-managed — keep lightweight DDL in repository.
+            return new JdbcReportRepository(plugin, sqlitePool, JdbcReportRepository.Dialect.SQLITE, false);
         } catch (Exception ex) {
             plugin.getLogger().log(Level.WARNING,
                     "SQLite reports mislukt — file fallback: " + ex.getMessage());
