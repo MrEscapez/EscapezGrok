@@ -1,6 +1,6 @@
 # EscapezCore hoofdconfiguratie
 # config-version wordt gebruikt voor merge van defaults bij upgrades
-config-version: 1
+config-version: 2
 
 prefix: "<gradient:#00E5FF:#7C4DFF><bold>Escapez</bold></gradient><gray> » </gray>"
 

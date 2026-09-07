@@ -28,21 +28,27 @@ commands:
   discord:
     description: Toon de Discord-link
     usage: /discord
+    aliases: [dc]
   website:
     description: Toon de website-link
     usage: /website
+    aliases: [web, site]
   vote:
     description: Toon de vote-link
     usage: /vote
+    aliases: [stem]
   shop:
     description: Toon de shop-link
     usage: /shop
+    aliases: [store]
   regels:
     description: Toon de serverregels-link
     usage: /regels
+    aliases: [rules]
   staff:
     description: Toon de staff-informatie-link
     usage: /staff
+    aliases: [team]
 
 permissions:
   escapezcore.command.*:

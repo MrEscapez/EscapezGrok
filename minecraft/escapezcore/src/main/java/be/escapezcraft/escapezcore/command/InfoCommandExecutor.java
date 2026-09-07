@@ -3,11 +3,14 @@ package be.escapezcraft.escapezcore.command;
 import be.escapezcraft.escapezcore.EscapezCorePlugin;
 import be.escapezcraft.escapezcore.config.ConfigManager;
 import be.escapezcraft.escapezcore.messages.MessagesService;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Handles /discord /website /vote /shop /regels /staff from commands.yml.
+ * Handles configurable info commands (/discord /website /vote /shop /regels /staff)
+ * from commands.yml — permissions, cooldown, console/player rules, logging, click URL.
  */
 public final class InfoCommandExecutor implements CommandExecutor, TabCompleter {
 
@@ -25,6 +29,7 @@ public final class InfoCommandExecutor implements CommandExecutor, TabCompleter 
     private final ConfigManager configManager;
     private final MessagesService messages;
     private final CooldownService cooldowns;
+    private final CommandModule commandModule;
     private final String commandKey;
 
     public InfoCommandExecutor(
@@ -32,12 +37,14 @@ public final class InfoCommandExecutor implements CommandExecutor, TabCompleter 
             ConfigManager configManager,
             MessagesService messages,
             CooldownService cooldowns,
+            CommandModule commandModule,
             String commandKey
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.messages = messages;
         this.cooldowns = cooldowns;
+        this.commandModule = commandModule;
         this.commandKey = commandKey;
     }
 
@@ -48,35 +55,51 @@ public final class InfoCommandExecutor implements CommandExecutor, TabCompleter 
             @NotNull String label,
             @NotNull String[] args
     ) {
-        ConfigurationSection section = configManager.getCommands().getConfigurationSection(commandKey);
-        if (section == null || !section.getBoolean("enabled", true)) {
+        CommandDefinition def = commandModule.getDefinition(commandKey);
+        if (def == null || !def.enabled()) {
             messages.send(sender, "unknown-subcommand");
             return true;
         }
 
-        String permission = section.getString("permission", "escapezcore.command." + commandKey);
-        if (!sender.hasPermission(permission)) {
+        if (!sender.hasPermission(def.permission())) {
             messages.send(sender, "no-permission");
             return true;
         }
 
-        int cooldown = section.getInt("cooldown-seconds",
-                configManager.getConfig().getInt("cooldowns.info-commands-seconds", 5));
+        if (sender instanceof Player) {
+            // players always allowed when enabled + permission
+        } else {
+            if (def.playerOnly() || !def.consoleAllowed()) {
+                messages.send(sender, "player-only");
+                return true;
+            }
+        }
 
         if (sender instanceof Player player) {
-            int remaining = cooldowns.remainingSeconds(player, commandKey, cooldown);
+            int remaining = cooldowns.remainingSeconds(
+                    player, commandKey, def.cooldownSeconds(), def.cooldownBypass());
             if (remaining > 0) {
                 messages.send(sender, "cooldown", Map.of("seconds", String.valueOf(remaining)));
                 return true;
             }
-            cooldowns.apply(player, commandKey, cooldown);
+            cooldowns.apply(player, commandKey, def.cooldownSeconds(), def.cooldownBypass());
         }
 
-        String url = section.getString("url", "https://example.com");
-        String messageKey = section.getString("message-key", "info-" + commandKey);
-        messages.send(sender, messageKey, Map.of("url", url));
-        plugin.debugLog("Info command executed: " + commandKey + " by "
-                + (sender instanceof Player p ? p.getUniqueId().toString() : "console"));
+        String url = def.url() == null ? "https://example.com" : def.url();
+        messages.send(sender, def.messageKey(), Map.of("url", url));
+
+        // Optional extra clickable line when message has no click (fallback)
+        if ("suggest_command".equalsIgnoreCase(def.clickAction()) && sender instanceof Player) {
+            Component hint = Component.text("→ /" + commandKey, NamedTextColor.DARK_AQUA)
+                    .clickEvent(ClickEvent.suggestCommand("/" + commandKey))
+                    .hoverEvent(HoverEvent.showText(Component.text("Klik om in te vullen", NamedTextColor.GRAY)));
+            sender.sendMessage(hint);
+        }
+
+        if (def.logging()) {
+            String who = sender instanceof Player p ? p.getUniqueId().toString() : "console";
+            plugin.debugLog("Info command executed: " + commandKey + " by " + who + " (label=" + label + ")");
+        }
         return true;
     }
 
@@ -87,6 +110,7 @@ public final class InfoCommandExecutor implements CommandExecutor, TabCompleter 
             @NotNull String alias,
             @NotNull String[] args
     ) {
+        // Info commands take no args — never leak admin suggestions
         return Collections.emptyList();
     }
 }

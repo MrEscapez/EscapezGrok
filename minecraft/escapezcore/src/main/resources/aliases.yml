@@ -1,5 +1,6 @@
 # Extra aliases (naast plugin.yml) — mapping alias -> target command name
-# Wordt bij reload opnieuw gelezen; registratie is soft (documentatie + lookup)
+# Wordt bij enable/reload gesynchroniseerd naar de command map waar mogelijk.
+# Houd in sync met commands.yml aliases + plugin.yml aliases.
 dc: discord
 web: website
 site: website
