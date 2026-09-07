@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchBridgeStatus, fetchHealth } from '../lib/api';
+import { Link } from 'react-router-dom';
+import { fetchBridgeStatus, fetchHealth, fetchServerList } from '../lib/api';
 import { useMeQuery } from '../hooks/useMeQuery';
 import { LiveFeedWidget } from '../components/LiveFeedWidget';
 
@@ -29,6 +30,12 @@ export function DashboardPage() {
     queryFn: fetchBridgeStatus,
     refetchInterval: 15_000,
     retry: 1,
+  });
+  const serversQuery = useQuery({
+    queryKey: ['server', 'list'],
+    queryFn: fetchServerList,
+    refetchInterval: 30_000,
+    retry: false,
   });
 
   const online = healthQuery.isSuccess && healthQuery.data?.status === 'ok';
@@ -167,6 +174,37 @@ export function DashboardPage() {
               Bridge-status niet bereikbaar.
             </p>
           ) : null}
+        </article>
+
+        <article className="dash-card">
+          <div className="dash-card__head">
+            <h2 className="dash-card__title">Pterodactyl-servers</h2>
+          </div>
+          {!serversQuery.data?.configured ? (
+            <p className="dash-card__hint dash-card__hint--warn">
+              Niet geconfigureerd.{' '}
+              <Link to="/settings">Instellingen openen</Link>
+            </p>
+          ) : (
+            <dl className="dash-dl">
+              <div>
+                <dt>Aantal</dt>
+                <dd>{serversQuery.data.items.length}</dd>
+              </div>
+              <div>
+                <dt>Online (running)</dt>
+                <dd>
+                  {
+                    serversQuery.data.items.filter((s) => s.power === 'running')
+                      .length
+                  }
+                </dd>
+              </div>
+            </dl>
+          )}
+          <p className="dash-card__hint">
+            <Link to="/server">Naar Server-pagina</Link>
+          </p>
         </article>
 
         <LiveFeedWidget enabled={!!user} />

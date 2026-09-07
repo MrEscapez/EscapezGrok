@@ -27,7 +27,7 @@ While logged in, the dashboard connects EventSource to `/api/v1/realtime/stream`
 (via Vite `/api` proxy). Shows Dutch labels for heartbeats and bridge events;
 reconnects on error. Graceful if SSE unsupported.
 
-Preview paths: `/dashboard`, `/punishments`, `/tickets`, `/planner`, `/settings`.
+Preview paths: `/dashboard`, `/punishments`, `/tickets`, `/planner`, `/server`, `/settings`.
 
 ## Planner (FASE 14 stubs)
 
@@ -40,6 +40,16 @@ Route `/settings` — EscapezCore module aan/uit toggles (Dutch, dark neon).
 TanStack Query list + optimistic PATCH with rollback. Shows local saved /
 pending sync badges and soft-reload toast. No secrets/RCON in the client.
 
+
+## Server (FASE 15)
+
+Route `/server` — power status cards, Start/Stop/Restart with Dutch confirm dialog,
+safe RCON command input. Calls Nest `/api/v1/server/*` with cookies only.
+Never stores or logs RCON/Pterodactyl secrets. Shows stub messaging when backend not configured.
+Settings → Pterodactyl: panel URL + write-only API keys + connection test.
+Server page lists all Application API servers when configured.
+
+
 ## Out of scope
 
-Full planner engine / persistence, live RCON, LiteBans deep integration. No secrets/RCON in the client.
+Full planner engine / persistence, LiteBans deep integration. No secrets/RCON/Pterodactyl credentials in the client.
