@@ -13,6 +13,8 @@ import { RequirePermissions } from '../rbac/require-permissions.decorator';
 import { PteroCredentialsStore } from '../server/ptero-credentials.store';
 import { PterodactylAdapter } from '../server/pterodactyl.adapter';
 import { PatchModuleDto } from './dto/patch-module.dto';
+import { DiscordBridgeCredentialsStore } from '../tickets/discord-bridge-credentials.store';
+import { DiscordBridgeConfigDto } from '../tickets/dto/discord-bridge-config.dto';
 import { TicketToolCredentialsStore } from '../tickets/ticket-tool-credentials.store';
 import { TicketToolConfigDto } from '../tickets/dto/ticket-tool-config.dto';
 import { PteroConfigDto } from './dto/ptero-config.dto';
@@ -25,6 +27,7 @@ export class SettingsController {
     private readonly pteroCreds: PteroCredentialsStore,
     private readonly ptero: PterodactylAdapter,
     private readonly ticketToolCreds: TicketToolCredentialsStore,
+    private readonly discordBridgeCreds: DiscordBridgeCredentialsStore,
   ) {}
 
   @Get('modules')
@@ -67,14 +70,33 @@ export class SettingsController {
     return this.ptero.testConnection();
   }
 
-  /** Public Ticket Tool config — NEVER returns token/secret plaintext. */
+  /** Public Discord bridge config — NEVER returns secret plaintext. */
+  @Get('discord-bridge')
+  @RequirePermissions(Permissions.SETTINGS_VIEW)
+  getDiscordBridge() {
+    return this.discordBridgeCreds.toPublic();
+  }
+
+  /** Save bridge secret (write-only). Empty field is ignored. */
+  @Put('discord-bridge')
+  @RequirePermissions(Permissions.SETTINGS_MANAGE)
+  putDiscordBridge(@Body() body: DiscordBridgeConfigDto) {
+    return this.discordBridgeCreds.save({
+      bridgeSecret: body.bridgeSecret,
+      clearBridgeSecret: body.clearBridgeSecret,
+    });
+  }
+
+  /**
+   * Optional Ticket Tool Pro config — hidden in primary UI.
+   * Niet nodig zonder Pro; Discord Bridge is de standaard.
+   */
   @Get('ticket-tool')
   @RequirePermissions(Permissions.SETTINGS_VIEW)
   getTicketTool() {
     return this.ticketToolCreds.toPublic();
   }
 
-  /** Save API token / webhook secret (write-only). Empty fields are ignored. */
   @Put('ticket-tool')
   @RequirePermissions(Permissions.SETTINGS_MANAGE)
   putTicketTool(@Body() body: TicketToolConfigDto) {

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Headers,
@@ -14,6 +15,9 @@ import type { Request } from 'express';
 import { Public } from '../rbac/public.decorator';
 import { Permissions } from '../rbac/permissions';
 import { RequirePermissions } from '../rbac/require-permissions.decorator';
+import { BridgeCloseDto } from './dto/bridge-close.dto';
+import { BridgeMessageDto } from './dto/bridge-message.dto';
+import { BridgeUpsertDto } from './dto/bridge-upsert.dto';
 import { TicketsService } from './tickets.service';
 
 @Controller('tickets')
@@ -27,10 +31,53 @@ export class TicketsController {
   }
 
   /**
-   * Ticket Tool → staff panel webhook.
-   * Auth: HMAC-SHA256(secret, `${timestamp}.${rawBody}`) via
-   * X-TicketTool-Signature + X-TicketTool-Timestamp.
-   * Event type in X-Webhook-Event.
+   * Discord bridge → create/update ticket from a Ticket Tool channel.
+   * Auth: Bearer STAFF_PANEL_BRIDGE_SECRET or X-Staff-Bridge-Secret (not staff cookie).
+   */
+  @Post('bridge/upsert')
+  @Public()
+  @HttpCode(200)
+  bridgeUpsert(
+    @Body() body: BridgeUpsertDto,
+    @Headers('authorization') authorization?: string,
+    @Headers('x-staff-bridge-secret') bridgeSecretHeader?: string,
+  ) {
+    this.tickets.assertBridgeAuth({ authorization, bridgeSecretHeader });
+    return this.tickets.bridgeUpsert(body);
+  }
+
+  /**
+   * Discord bridge → append a channel message to a ticket.
+   */
+  @Post('bridge/message')
+  @Public()
+  @HttpCode(200)
+  bridgeMessage(
+    @Body() body: BridgeMessageDto,
+    @Headers('authorization') authorization?: string,
+    @Headers('x-staff-bridge-secret') bridgeSecretHeader?: string,
+  ) {
+    this.tickets.assertBridgeAuth({ authorization, bridgeSecretHeader });
+    return this.tickets.bridgeMessage(body);
+  }
+
+  /**
+   * Discord bridge → close ticket (channel deleted / archived).
+   */
+  @Post('bridge/close')
+  @Public()
+  @HttpCode(200)
+  bridgeClose(
+    @Body() body: BridgeCloseDto,
+    @Headers('authorization') authorization?: string,
+    @Headers('x-staff-bridge-secret') bridgeSecretHeader?: string,
+  ) {
+    this.tickets.assertBridgeAuth({ authorization, bridgeSecretHeader });
+    return this.tickets.bridgeClose(body);
+  }
+
+  /**
+   * Optional Ticket Tool Pro webhook (HMAC). Prefer Discord bridge for free plans.
    */
   @Post('webhook')
   @Public()
@@ -56,6 +103,7 @@ export class TicketsController {
     });
   }
 
+  /** Herlaad lokaal / optionele Pro sync — tickets:manage. */
   @Post('sync')
   @HttpCode(200)
   @RequirePermissions(Permissions.TICKETS_MANAGE)

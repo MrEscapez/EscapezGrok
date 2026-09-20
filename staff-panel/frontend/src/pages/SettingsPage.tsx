@@ -5,16 +5,16 @@ import {
   fetchBridgeStatus,
   fetchPteroSettings,
   fetchSettingsModules,
-  fetchTicketToolSettings,
+  fetchDiscordBridgeSettings,
   patchSettingsModule,
+  saveDiscordBridgeSettings,
   savePteroSettings,
-  saveTicketToolSettings,
   testPteroConnection,
+  type DiscordBridgePublicConfig,
   type ModulePatchResponse,
   type ModuleSource,
   type ModuleStatus,
   type PteroPublicConfig,
-  type TicketToolPublicConfig,
 } from '../lib/api';
 import { HelpTip, LabelWithHelp } from '../components/HelpTip';
 
@@ -66,8 +66,7 @@ export function SettingsPage() {
   const [defaultServerId, setDefaultServerId] = useState('');
   const [pteroHydrated, setPteroHydrated] = useState(false);
 
-  const [ttApiToken, setTtApiToken] = useState('');
-  const [ttWebhookSecret, setTtWebhookSecret] = useState('');
+  const [bridgeSecret, setBridgeSecret] = useState('');
 
   const modulesQuery = useQuery({
     queryKey: ['settings', 'modules'],
@@ -88,9 +87,9 @@ export function SettingsPage() {
     retry: false,
   });
 
-  const ticketToolQuery = useQuery({
-    queryKey: ['settings', 'ticket-tool'],
-    queryFn: fetchTicketToolSettings,
+  const discordBridgeQuery = useQuery({
+    queryKey: ['settings', 'discord-bridge'],
+    queryFn: fetchDiscordBridgeSettings,
     retry: false,
   });
 
@@ -228,25 +227,22 @@ export function SettingsPage() {
   });
 
 
-  const saveTicketToolMutation = useMutation({
+  const saveDiscordBridgeMutation = useMutation({
     mutationFn: () =>
-      saveTicketToolSettings({
-        apiToken: ttApiToken.trim() || undefined,
-        webhookSecret: ttWebhookSecret.trim() || undefined,
+      saveDiscordBridgeSettings({
+        bridgeSecret: bridgeSecret.trim() || undefined,
       }),
-    onSuccess: (data: TicketToolPublicConfig) => {
-      setTtApiToken('');
-      setTtWebhookSecret('');
+    onSuccess: (data: DiscordBridgePublicConfig) => {
+      setBridgeSecret('');
       void queryClient.invalidateQueries({
-        queryKey: ['settings', 'ticket-tool'],
+        queryKey: ['settings', 'discord-bridge'],
       });
       void queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setFeedback({
-        kind: data.configured || data.webhookSecretConfigured ? 'ok' : 'warn',
-        message:
-          data.configured || data.webhookSecretConfigured
-            ? 'Ticket Tool-instellingen opgeslagen. Token/secret blijven write-only op de backend.'
-            : 'Opgeslagen, maar Ticket Tool is nog niet volledig geconfigureerd.',
+        kind: data.configured ? 'ok' : 'warn',
+        message: data.configured
+          ? 'Discord Bridge-secret opgeslagen (write-only op de backend). Zet hetzelfde secret op de bridge-bot.'
+          : 'Opgeslagen, maar Discord Bridge is nog niet geconfigureerd.',
       });
     },
     onError: (err) => {
@@ -255,7 +251,7 @@ export function SettingsPage() {
         message:
           err instanceof ApiError
             ? err.message
-            : 'Ticket Tool-instellingen opslaan mislukt.',
+            : 'Discord Bridge-instellingen opslaan mislukt.',
       });
     },
   });
@@ -268,16 +264,16 @@ export function SettingsPage() {
 
   const modules = modulesQuery.data?.modules ?? [];
   const ptero = pteroQuery.data;
-  const ticketTool = ticketToolQuery.data;
+  const discordBridge = discordBridgeQuery.data;
 
   function onPteroSave(e: FormEvent) {
     e.preventDefault();
     savePteroMutation.mutate();
   }
 
-  function onTicketToolSave(e: FormEvent) {
+  function onDiscordBridgeSave(e: FormEvent) {
     e.preventDefault();
-    saveTicketToolMutation.mutate();
+    saveDiscordBridgeMutation.mutate();
   }
 
   return (
@@ -640,119 +636,92 @@ export function SettingsPage() {
       </div>
       <div className="page__card settings-ptero">
         <h2 className="settings-section-title settings-section-title-row">
-          <span>Ticket Tool</span>
-          <HelpTip label="Uitleg Ticket Tool" wide>
+          <span>Discord Bridge</span>
+          <HelpTip label="Uitleg Discord Bridge" wide>
             <p>
-              Ticket Tool koppelt Discord-tickets aan dit staff panel. Maak een
-              API-token (tt_…) in Ticket Tool (Pro+) en een webhook-signing-secret.
+              Spiegel gratis Ticket Tool-ticketkanalen naar dit panel via een
+              kleine Discord-bot (geen Ticket Tool Pro API nodig).
             </p>
             <p>
-              Token en secret gaan alleen naar de Nest-backend (write-only) en
-              komen nooit terug in de browser of in logs.
+              Het bridge-secret gaat alleen naar de Nest-backend (write-only) en
+              komt nooit terug in de browser of in logs. Zet dezelfde waarde als
+              <code>STAFF_PANEL_BRIDGE_SECRET</code> op de bot.
             </p>
             <p>
-              Registreer in Ticket Tool de webhook-URL hieronder en abonneer de
-              genoemde events. Handtekening: HMAC-SHA256 over
-              <code>{'{'}timestamp{'}'}.{'{'}rawBody{'}'}</code>.
+              Bot-code: <code>staff-panel/discord-ticket-bridge/</code> — zie README
+              (NL/EN) voor invite, Message Content Intent en category-IDs.
             </p>
           </HelpTip>
         </h2>
         <p className="settings-section-desc">
-          Webhook-URL registreren:{' '}
-          <code>{ticketTool?.webhookUrlHint ?? 'https://staff.escapez.be/api/v1/tickets/webhook'}</code>
-          . Events:{' '}
-          {(ticketTool?.webhookEventsHint ?? []).join(', ') ||
-            'TICKET_CREATED, TICKET_UPDATED, TICKET_CLOSED, TICKET_REOPENED, TICKET_CLAIMED, TICKET_UNCLAIMED, TICKET_DELETED, TICKET_MESSAGE_CREATED'}
-          .
+          {discordBridge?.helpNl?.title ??
+            'Discord Bridge (gratis Ticket Tool)'}: invite bot met View Channels +
+          Read Message History + Read Messages, Message Content Intent aan, plak
+          Ticket Tool category-IDs in <code>TICKET_CATEGORY_IDS</code>.
         </p>
 
-        {ticketToolQuery.isPending ? (
-          <p className="empty-state">Ticket Tool-config laden…</p>
+        {discordBridge?.helpNl?.steps?.length ? (
+          <ol className="settings-section-desc" style={{ paddingLeft: '1.25rem' }}>
+            {discordBridge.helpNl.steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
         ) : null}
 
-        {ticketToolQuery.isError ? (
+        {discordBridgeQuery.isPending ? (
+          <p className="empty-state">Discord Bridge-config laden…</p>
+        ) : null}
+
+        {discordBridgeQuery.isError ? (
           <div className="empty-state empty-state--warn">
             <p>
-              {ticketToolQuery.error instanceof ApiError
-                ? ticketToolQuery.error.message
-                : 'Kan Ticket Tool-instellingen niet laden.'}
+              {discordBridgeQuery.error instanceof ApiError
+                ? discordBridgeQuery.error.message
+                : 'Kan Discord Bridge-instellingen niet laden.'}
             </p>
           </div>
         ) : null}
 
-        {ticketTool ? (
+        {discordBridge ? (
           <dl className="dash-dl settings-ptero__status">
             <div>
-              <dt>API-token</dt>
+              <dt>Bridge-secret</dt>
               <dd>
-                {ticketTool.apiTokenConfigured
-                  ? ticketTool.apiTokenHint ?? '••••'
-                  : 'Niet gezet'}
-              </dd>
-            </div>
-            <div>
-              <dt>Webhook-secret</dt>
-              <dd>
-                {ticketTool.webhookSecretConfigured
-                  ? ticketTool.webhookSecretHint ?? '••••'
+                {discordBridge.configured
+                  ? discordBridge.secretHint ?? '••••'
                   : 'Niet gezet'}
               </dd>
             </div>
             <div>
               <dt>Bron</dt>
-              <dd>{ticketTool.source}</dd>
+              <dd>{discordBridge.source}</dd>
             </div>
           </dl>
         ) : null}
 
-        <form className="settings-ptero__form" onSubmit={onTicketToolSave}>
+        <form className="settings-ptero__form" onSubmit={onDiscordBridgeSave}>
           <LabelWithHelp
-            htmlFor="tt-token"
-            text="API-token (write-only)"
-            helpLabel="Uitleg Ticket Tool API-token"
+            htmlFor="bridge-secret"
+            text="Bridge-secret (write-only)"
+            helpLabel="Uitleg bridge-secret"
             help={
               <p>
-                Token uit Ticket Tool (begint met tt_). Leeg laten bij opslaan
-                behoudt de bestaande token op de backend. Nooit in de frontend
-                bundle of logs plaatsen.
+                Gedeeld secret tussen Staff Panel en de Discord bridge-bot.
+                Leeg laten bij opslaan behoudt het bestaande secret. Nooit in de
+                frontend bundle of logs plaatsen.
               </p>
             }
           />
           <input
-            id="tt-token"
+            id="bridge-secret"
             className="server-input"
             type="password"
-            value={ttApiToken}
-            onChange={(e) => setTtApiToken(e.target.value)}
+            value={bridgeSecret}
+            onChange={(e) => setBridgeSecret(e.target.value)}
             placeholder={
-              ticketTool?.apiTokenConfigured
-                ? 'Nieuwe token om te vervangen (leeg = behouden)'
-                : 'tt_…'
-            }
-            autoComplete="new-password"
-          />
-
-          <LabelWithHelp
-            htmlFor="tt-secret"
-            text="Webhook signing secret (write-only)"
-            helpLabel="Uitleg webhook-secret"
-            help={
-              <p>
-                Signing secret dat Ticket Tool toont bij het aanmaken van de
-                webhook. Gebruikt voor HMAC-verificatie van inkomende events.
-              </p>
-            }
-          />
-          <input
-            id="tt-secret"
-            className="server-input"
-            type="password"
-            value={ttWebhookSecret}
-            onChange={(e) => setTtWebhookSecret(e.target.value)}
-            placeholder={
-              ticketTool?.webhookSecretConfigured
+              discordBridge?.configured
                 ? 'Nieuw secret om te vervangen (leeg = behouden)'
-                : 'Webhook-secret'
+                : 'Bridge-secret'
             }
             autoComplete="new-password"
           />
@@ -761,12 +730,17 @@ export function SettingsPage() {
             <button
               type="submit"
               className="server-btn server-btn--primary"
-              disabled={saveTicketToolMutation.isPending}
+              disabled={saveDiscordBridgeMutation.isPending}
             >
-              {saveTicketToolMutation.isPending ? 'Opslaan…' : 'Opslaan'}
+              {saveDiscordBridgeMutation.isPending ? 'Opslaan…' : 'Opslaan'}
             </button>
           </div>
         </form>
+
+        <p className="settings-section-desc" style={{ marginTop: '1rem' }}>
+          Ticket Tool Pro API-token/webhook is niet nodig zonder Pro-abonnement
+          (verborgen). Gebruik de Discord Bridge hierboven.
+        </p>
       </div>
 
     </section>

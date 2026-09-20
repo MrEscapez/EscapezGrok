@@ -67,13 +67,17 @@ export type TicketItem = {
   ticketNumber: number | null;
   claimedBy: string | null;
   priority: string | null;
+  channelId: string | null;
+  channelName: string | null;
+  source: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 export type TicketDetail = TicketItem & {
   categoryId: string | null;
-  channelId: string | null;
+  guildId: string | null;
+  openerId: string | null;
   closedAt: string | null;
   messages: TicketMessage[];
 };
@@ -197,7 +201,7 @@ export function fetchTicket(id: string): Promise<TicketDetail> {
   return apiFetch<TicketDetail>(`/tickets/${encodeURIComponent(id)}`);
 }
 
-/** Sync from Ticket Tool API — requires tickets:manage. Never logs tokens. */
+/** Herlaad lokaal / optionele Pro sync — requires tickets:manage. */
 export function syncTickets(): Promise<TicketSyncResult> {
   return apiFetch<TicketSyncResult>('/tickets/sync', {
     method: 'POST',
@@ -415,6 +419,43 @@ export function testPteroConnection(): Promise<PteroTestResult> {
   });
 }
 
+export type DiscordBridgePublicConfig = {
+  configured: boolean;
+  secretHint: string | null;
+  source: 'file' | 'env' | 'none';
+  helpNl: {
+    title: string;
+    steps: string[];
+  };
+  bridgeEndpointsHint: string[];
+};
+
+export type DiscordBridgeConfigSaveInput = {
+  /** Write-only — omit to keep; never log this value. */
+  bridgeSecret?: string;
+  clearBridgeSecret?: boolean;
+};
+
+export function fetchDiscordBridgeSettings(): Promise<DiscordBridgePublicConfig> {
+  return apiFetch<DiscordBridgePublicConfig>('/settings/discord-bridge');
+}
+
+/** Never log bridgeSecret values. */
+export function saveDiscordBridgeSettings(
+  input: DiscordBridgeConfigSaveInput,
+): Promise<DiscordBridgePublicConfig> {
+  const body: DiscordBridgeConfigSaveInput = {};
+  if (typeof input.bridgeSecret === 'string' && input.bridgeSecret.trim()) {
+    body.bridgeSecret = input.bridgeSecret.trim();
+  }
+  if (input.clearBridgeSecret) body.clearBridgeSecret = true;
+  return apiFetch<DiscordBridgePublicConfig>('/settings/discord-bridge', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/** @deprecated Ticket Tool Pro — optional; prefer Discord Bridge. */
 export type TicketToolPublicConfig = {
   configured: boolean;
   apiTokenConfigured: boolean;
@@ -427,7 +468,6 @@ export type TicketToolPublicConfig = {
 };
 
 export type TicketToolConfigSaveInput = {
-  /** Write-only — omit to keep; never log this value. */
   apiToken?: string;
   webhookSecret?: string;
   clearApiToken?: boolean;
@@ -438,7 +478,6 @@ export function fetchTicketToolSettings(): Promise<TicketToolPublicConfig> {
   return apiFetch<TicketToolPublicConfig>('/settings/ticket-tool');
 }
 
-/** Never log apiToken / webhookSecret values. */
 export function saveTicketToolSettings(
   input: TicketToolConfigSaveInput,
 ): Promise<TicketToolPublicConfig> {
