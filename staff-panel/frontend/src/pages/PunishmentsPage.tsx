@@ -74,7 +74,7 @@ export function PunishmentsPage() {
       <header className="page__header">
         <h1 className="page__title">Straffen</h1>
         <p className="page__desc">
-          Bans, mutes en warnings (stub — geen LiteBans-koppeling).
+          Bans, mutes en warnings. LiteBans-koppeling volgt later.
         </p>
       </header>
 

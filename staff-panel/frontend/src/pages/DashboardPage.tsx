@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchBridgeStatus, fetchHealth, fetchServerList } from '../lib/api';
+import {
+  fetchBridgeStatus,
+  fetchHealth,
+  fetchServerList,
+  type PteroServerSummary,
+} from '../lib/api';
 import { useMeQuery } from '../hooks/useMeQuery';
 import { LiveFeedWidget } from '../components/LiveFeedWidget';
 
@@ -15,6 +20,40 @@ function formatTimestamp(iso: string | undefined): string {
   } catch {
     return iso;
   }
+}
+
+function pteroPowerNl(power: PteroServerSummary['power']): string {
+  switch (power) {
+    case 'running':
+      return 'Online';
+    case 'starting':
+      return 'Starten…';
+    case 'stopping':
+      return 'Stoppen…';
+    case 'offline':
+      return 'Offline';
+    default:
+      return 'Onbekend';
+  }
+}
+
+function pteroPowerClass(power: PteroServerSummary['power']): string {
+  if (power === 'running') return 'status-pill status-pill--online';
+  if (power === 'offline') return 'status-pill status-pill--offline';
+  if (power === 'starting' || power === 'stopping') {
+    return 'status-pill status-pill--loading';
+  }
+  return 'status-pill status-pill--muted';
+}
+
+function playerCountLabel(s: PteroServerSummary): string {
+  if (typeof s.playersOnline === 'number') {
+    if (typeof s.maxPlayers === 'number') {
+      return `${s.playersOnline} / ${s.maxPlayers}`;
+    }
+    return String(s.playersOnline);
+  }
+  return '—';
 }
 
 export function DashboardPage() {
@@ -34,7 +73,7 @@ export function DashboardPage() {
   const serversQuery = useQuery({
     queryKey: ['server', 'list'],
     queryFn: fetchServerList,
-    refetchInterval: 30_000,
+    refetchInterval: 20_000,
     retry: false,
   });
 
@@ -59,12 +98,16 @@ export function DashboardPage() {
     typeof hbBody.status === 'string' ? hbBody.status : hb ? 'ontvangen' : null;
   const hasHeartbeat = !!hb;
 
+  const servers = serversQuery.data;
+  const serverItems = servers?.items ?? [];
+  const runningCount = serverItems.filter((s) => s.power === 'running').length;
+
   return (
     <section className="page">
       <header className="page__header">
         <h1 className="page__title">Dashboard</h1>
         <p className="page__desc">
-          Live overzicht van API-status, EscapezCore heartbeat en sessie.
+          Live overzicht van API, Pterodactyl-servers, EscapezCore en sessie.
         </p>
       </header>
 
@@ -178,35 +221,119 @@ export function DashboardPage() {
 
         <article className="dash-card">
           <div className="dash-card__head">
-            <h2 className="dash-card__title">Pterodactyl-servers</h2>
+            <h2 className="dash-card__title">Pterodactyl-overzicht</h2>
+            {servers?.configured ? (
+              <span className="status-pill status-pill--online">
+                {runningCount}/{serverItems.length} online
+              </span>
+            ) : (
+              <span className="status-pill status-pill--muted">Niet gezet</span>
+            )}
           </div>
-          {!serversQuery.data?.configured ? (
+          {serversQuery.isPending ? (
+            <p className="dash-card__hint">Servers laden…</p>
+          ) : null}
+          {serversQuery.isError ? (
             <p className="dash-card__hint dash-card__hint--warn">
-              Niet geconfigureerd.{' '}
+              Serverlijst niet bereikbaar.
+            </p>
+          ) : null}
+          {servers && !servers.configured ? (
+            <p className="dash-card__hint dash-card__hint--warn">
+              Pterodactyl niet geconfigureerd.{' '}
               <Link to="/settings">Instellingen openen</Link>
             </p>
-          ) : (
+          ) : null}
+          {servers?.configured && serverItems.length === 0 ? (
+            <p className="dash-card__hint">
+              Geen servers gevonden. Controleer de Ptero-configuratie.
+            </p>
+          ) : null}
+          {servers?.configured && serverItems.length > 0 ? (
             <dl className="dash-dl">
               <div>
-                <dt>Aantal</dt>
-                <dd>{serversQuery.data.items.length}</dd>
+                <dt>Aantal servers</dt>
+                <dd>{serverItems.length}</dd>
               </div>
               <div>
-                <dt>Online (running)</dt>
-                <dd>
-                  {
-                    serversQuery.data.items.filter((s) => s.power === 'running')
-                      .length
-                  }
-                </dd>
+                <dt>Running</dt>
+                <dd>{runningCount}</dd>
               </div>
             </dl>
-          )}
+          ) : null}
           <p className="dash-card__hint">
-            <Link to="/server">Naar Server-pagina</Link>
+            <Link to="/server">Naar Servers-pagina →</Link>
           </p>
         </article>
+      </div>
 
+      <section className="dash-servers" aria-label="Serverstatus">
+        <div className="dash-servers__head">
+          <h2 className="dash-servers__title">Live serverstatus</h2>
+          <p className="dash-servers__desc">
+            Power en spelersaantallen via `/api/v1/server/list` (geen secrets in
+            de browser).
+          </p>
+        </div>
+
+        {serversQuery.isPending ? (
+          <p className="empty-state">Serverstatus laden…</p>
+        ) : null}
+
+        {servers && !servers.configured ? (
+          <div className="empty-state empty-state--compact">
+            <p>Pterodactyl is nog niet geconfigureerd.</p>
+            <p className="empty-state__sub">
+              Voeg base URL en API-keys toe onder{' '}
+              <Link to="/settings">Instellingen</Link>. Secrets blijven op de
+              backend.
+            </p>
+          </div>
+        ) : null}
+
+        {servers?.configured && serverItems.length === 0 ? (
+          <div className="empty-state empty-state--compact">
+            <p>Geen Pterodactyl-servers beschikbaar.</p>
+            <p className="empty-state__sub">
+              {servers.message ??
+                'De API is geconfigureerd maar gaf geen servers terug.'}
+            </p>
+          </div>
+        ) : null}
+
+        {serverItems.length > 0 ? (
+          <div className="dash-server-grid">
+            {serverItems.map((s) => (
+              <article key={s.identifier} className="dash-server-card">
+                <div className="dash-card__head">
+                  <h3 className="dash-server-card__name">{s.name}</h3>
+                  <span className={pteroPowerClass(s.power)}>
+                    {pteroPowerNl(s.power)}
+                  </span>
+                </div>
+                <dl className="dash-dl dash-dl--compact">
+                  <div>
+                    <dt>Identifier</dt>
+                    <dd className="mono">{s.identifier}</dd>
+                  </div>
+                  <div>
+                    <dt>Spelers</dt>
+                    <dd>{playerCountLabel(s)}</dd>
+                  </div>
+                  {s.suspended ? (
+                    <div>
+                      <dt>Status</dt>
+                      <dd>Opgeschort</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <div className="dash-grid dash-grid--feed">
         <LiveFeedWidget enabled={!!user} />
       </div>
     </section>

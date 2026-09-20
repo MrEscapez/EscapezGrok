@@ -29,7 +29,8 @@ export function PlayersPage() {
       <header className="page__header">
         <h1 className="page__title">Spelers</h1>
         <p className="page__desc">
-          Zoek spelers op naam (stub-API — nog geen live EscapezCore-data).
+          Zoek spelers op naam. Live EscapezCore-data volgt wanneer de bridge
+          aangesloten is.
         </p>
       </header>
 
@@ -78,7 +79,7 @@ export function PlayersPage() {
                 : 'Nog geen spelers in de stub-API.'}
             </p>
             <p className="empty-state__sub">
-              Live data volgt wanneer EscapezCore/Postgres is aangesloten.
+              Tip: probeer een andere zoekterm of wacht tot Core data levert.
             </p>
           </div>
         ) : null}
