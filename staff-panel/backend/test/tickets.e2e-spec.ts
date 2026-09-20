@@ -3,14 +3,16 @@ import { createHmac } from 'crypto';
 import request from 'supertest';
 import { createTestApp, parseCookie } from './helpers';
 
-describe('Tickets + Ticket Tool webhook (e2e)', () => {
+describe('Tickets + Discord bridge + Ticket Tool webhook (e2e)', () => {
   let app: INestApplication;
   const cookieName = 'escapez_staff_session';
   const webhookSecret = 'test-webhook-secret-value';
+  const bridgeSecret = 'test-discord-bridge-secret-value';
 
   beforeAll(async () => {
     const ctx = await createTestApp({
       TICKET_TOOL_WEBHOOK_SECRET: webhookSecret,
+      DISCORD_BRIDGE_SECRET: bridgeSecret,
     });
     app = ctx.app;
   });
@@ -59,6 +61,116 @@ describe('Tickets + Ticket Tool webhook (e2e)', () => {
       .get('/api/v1/tickets')
       .set('Cookie', helperCookie)
       .expect(403);
+  });
+
+  it('bridge upsert rejects missing secret → 401', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/tickets/bridge/upsert')
+      .send({
+        channelId: 'ch-noauth',
+        channelName: 'ticket-1',
+        guildId: 'g1',
+      })
+      .expect(401);
+  });
+
+  it('bridge upsert rejects wrong secret → 401', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/tickets/bridge/upsert')
+      .set('Authorization', 'Bearer wrong-secret')
+      .send({
+        channelId: 'ch-bad',
+        channelName: 'ticket-2',
+        guildId: 'g1',
+      })
+      .expect(401);
+  });
+
+  it('bridge upsert + message with secret; staff can list', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/tickets/bridge/upsert')
+      .set('Authorization', `Bearer ${bridgeSecret}`)
+      .send({
+        channelId: 'ch-ok-1',
+        channelName: 'ticket-99',
+        guildId: 'guild-1',
+        openerId: 'u-opener',
+        openerTag: 'Speler#1234',
+        categoryId: 'cat-1',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/tickets/bridge/message')
+      .set('X-Staff-Bridge-Secret', bridgeSecret)
+      .send({
+        channelId: 'ch-ok-1',
+        messageId: 'msg-1',
+        authorId: 'u-opener',
+        authorTag: 'Speler#1234',
+        content: 'Hallo staff',
+        attachments: [],
+        timestamp: new Date().toISOString(),
+        isBot: false,
+        isWebhook: false,
+      })
+      .expect(200);
+
+    const adminCookie = await login('admin', 'CHANGE_ME');
+    const list = await request(app.getHttpServer())
+      .get('/api/v1/tickets')
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(Array.isArray(list.body.items)).toBe(true);
+    const found = (
+      list.body.items as Array<{
+        id: string;
+        subject: string;
+        player: string;
+        channelId: string | null;
+      }>
+    ).find((t) => t.id === 'ch-ok-1');
+    expect(found).toBeTruthy();
+    expect(found!.subject).toContain('ticket-99');
+    expect(found!.player).toContain('Speler');
+    expect(found!.channelId).toBe('ch-ok-1');
+
+    const detail = await request(app.getHttpServer())
+      .get('/api/v1/tickets/ch-ok-1')
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(detail.body.id).toBe('ch-ok-1');
+    expect(detail.body.guildId).toBe('guild-1');
+    expect(detail.body.channelName).toBe('ticket-99');
+    expect(Array.isArray(detail.body.messages)).toBe(true);
+    expect(detail.body.messages.length).toBeGreaterThanOrEqual(1);
+    expect(detail.body.messages[0].content).toContain('Hallo');
+  });
+
+  it('bridge close marks ticket CLOSED', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/tickets/bridge/upsert')
+      .set('Authorization', `Bearer ${bridgeSecret}`)
+      .send({
+        channelId: 'ch-close-1',
+        channelName: 'ticket-7',
+        guildId: 'guild-1',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/tickets/bridge/close')
+      .set('Authorization', `Bearer ${bridgeSecret}`)
+      .send({ channelId: 'ch-close-1', reason: 'channel_deleted' })
+      .expect(200);
+
+    const adminCookie = await login('admin', 'CHANGE_ME');
+    const detail = await request(app.getHttpServer())
+      .get('/api/v1/tickets/ch-close-1')
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(detail.body.status).toBe('CLOSED');
+    expect(detail.body.closedAt).toBeTruthy();
   });
 
   it('webhook rejects invalid signature', async () => {
@@ -134,6 +246,28 @@ describe('Tickets + Ticket Tool webhook (e2e)', () => {
       .set('Cookie', adminCookie)
       .expect(200);
     expect(detail.body.id).toBe('t-ok-1');
+  });
+
+  it('settings discord-bridge never returns plaintext secret', async () => {
+    const adminCookie = await login('admin', 'CHANGE_ME');
+    await request(app.getHttpServer())
+      .put('/api/v1/settings/discord-bridge')
+      .set('Cookie', adminCookie)
+      .send({
+        bridgeSecret: 'super_secret_bridge_value_xyz',
+      })
+      .expect(200);
+
+    const get = await request(app.getHttpServer())
+      .get('/api/v1/settings/discord-bridge')
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    const body = JSON.stringify(get.body);
+    expect(body).not.toContain('super_secret_bridge_value_xyz');
+    expect(get.body.configured).toBe(true);
+    expect(get.body.secretHint).toBeTruthy();
+    expect(get.body.helpNl).toBeTruthy();
   });
 
   it('settings ticket-tool never returns plaintext secrets', async () => {

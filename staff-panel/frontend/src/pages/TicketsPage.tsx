@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
+  fetchDiscordBridgeSettings,
   fetchTicket,
   fetchTickets,
-  fetchTicketToolSettings,
   syncTickets,
   type TicketDetail,
   type TicketItem,
@@ -51,8 +51,8 @@ export function TicketsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const configQuery = useQuery({
-    queryKey: ['settings', 'ticket-tool'],
-    queryFn: fetchTicketToolSettings,
+    queryKey: ['settings', 'discord-bridge'],
+    queryFn: fetchDiscordBridgeSettings,
     retry: false,
   });
 
@@ -69,17 +69,26 @@ export function TicketsPage() {
     retry: false,
   });
 
-  const syncMutation = useMutation({
-    mutationFn: syncTickets,
+  const reloadMutation = useMutation({
+    mutationFn: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      // Optional local reload endpoint (no Pro required)
+      if (canManage) {
+        return syncTickets();
+      }
+      return {
+        ok: true,
+        upserted: 0,
+        message: 'Lijst vernieuwd.',
+      };
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['tickets'] });
     },
   });
 
   const configured = Boolean(
-    configQuery.data?.configured ||
-      configQuery.data?.webhookSecretConfigured ||
-      listQuery.data?.configured,
+    configQuery.data?.configured || listQuery.data?.configured,
   );
 
   const items: TicketItem[] = listQuery.data?.items ?? [];
@@ -88,10 +97,10 @@ export function TicketsPage() {
   const emptyHint = useMemo(() => {
     if (configQuery.isPending || listQuery.isPending) return null;
     if (!configured) {
-      return 'Ticket Tool is nog niet geconfigureerd. Ga naar Instellingen om een API-token (tt_…) en webhook-secret in te stellen.';
+      return 'Discord Bridge is nog niet geconfigureerd. Ga naar Instellingen om een bridge-secret in te stellen en start de Discord-bot.';
     }
     if (items.length === 0) {
-      return 'Geen tickets in de lokale store. Gebruik Sync of wacht op webhook-events.';
+      return 'Geen tickets in de lokale store. Open een Ticket Tool-kanaal in Discord (bridge-bot moet draaien).';
     }
     return null;
   }, [configured, configQuery.isPending, items.length, listQuery.isPending]);
@@ -102,38 +111,30 @@ export function TicketsPage() {
         <div>
           <h1 className="page__title">Tickets</h1>
           <p className="page__desc">
-            Discord-supporttickets via Ticket Tool (lokaal + webhook/sync).
+            Discord-supporttickets via Discord Bridge (gratis Ticket Tool-kanalen).
           </p>
         </div>
-        {canManage ? (
-          <button
-            type="button"
-            className="server-btn server-btn--primary"
-            disabled={
-              syncMutation.isPending || !configQuery.data?.configured
-            }
-            title={
-              configQuery.data?.configured
-                ? 'Haal tickets op via de Ticket Tool API'
-                : 'Configureer eerst een API-token onder Instellingen'
-            }
-            onClick={() => syncMutation.mutate()}
-          >
-            {syncMutation.isPending ? 'Sync…' : 'Sync met Ticket Tool'}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="server-btn server-btn--primary"
+          disabled={reloadMutation.isPending}
+          title="Herlaad de lokale ticketlijst"
+          onClick={() => reloadMutation.mutate()}
+        >
+          {reloadMutation.isPending ? 'Laden…' : 'Herlaad'}
+        </button>
       </header>
 
-      {syncMutation.isSuccess ? (
+      {reloadMutation.isSuccess ? (
         <div className="settings-toast settings-toast--ok" role="status">
-          {syncMutation.data.message}
+          {reloadMutation.data.message}
         </div>
       ) : null}
-      {syncMutation.isError ? (
+      {reloadMutation.isError ? (
         <div className="settings-toast settings-toast--error" role="status">
-          {syncMutation.error instanceof ApiError
-            ? syncMutation.error.message
-            : 'Sync mislukt.'}
+          {reloadMutation.error instanceof ApiError
+            ? reloadMutation.error.message
+            : 'Herladen mislukt.'}
         </div>
       ) : null}
 
@@ -164,10 +165,10 @@ export function TicketsPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Onderwerp</th>
+                  <th>Kanaal / onderwerp</th>
                   <th>Speler</th>
                   <th>Status</th>
-                  <th>Toegewezen</th>
+                  <th>Bron</th>
                   <th>Bijgewerkt</th>
                 </tr>
               </thead>
@@ -186,14 +187,14 @@ export function TicketsPage() {
                         ? `#${t.ticketNumber}`
                         : t.id.slice(0, 8)}
                     </td>
-                    <td>{t.subject || '—'}</td>
+                    <td>{t.channelName || t.subject || '—'}</td>
                     <td>{t.player || '—'}</td>
                     <td>
                       <span className={statusBadgeClass(t.status)}>
                         {statusLabel(t.status)}
                       </span>
                     </td>
-                    <td>{t.claimedBy || '—'}</td>
+                    <td className="mono">{t.source || '—'}</td>
                     <td>{formatTs(t.updatedAt || t.createdAt)}</td>
                   </tr>
                 ))}
@@ -214,7 +215,7 @@ export function TicketsPage() {
           <aside className="ticket-drawer" aria-label="Ticketdetail">
             <header className="ticket-drawer__header">
               <h2 className="ticket-drawer__title">
-                {detail?.subject || 'Ticket'}
+                {detail?.channelName || detail?.subject || 'Ticket'}
               </h2>
               <button
                 type="button"
@@ -262,12 +263,24 @@ export function TicketsPage() {
                     <dd>{detail.player || '—'}</dd>
                   </div>
                   <div>
-                    <dt>Toegewezen</dt>
-                    <dd>{detail.claimedBy || '—'}</dd>
+                    <dt>Kanaalnaam</dt>
+                    <dd>{detail.channelName || detail.subject || '—'}</dd>
                   </div>
                   <div>
-                    <dt>Prioriteit</dt>
-                    <dd>{detail.priority || '—'}</dd>
+                    <dt>Channel ID</dt>
+                    <dd className="mono">{detail.channelId || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Guild ID</dt>
+                    <dd className="mono">{detail.guildId || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Opener Discord ID</dt>
+                    <dd className="mono">{detail.openerId || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Bron</dt>
+                    <dd className="mono">{detail.source || '—'}</dd>
                   </div>
                   <div>
                     <dt>Aangemaakt</dt>

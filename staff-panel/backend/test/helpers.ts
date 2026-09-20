@@ -38,6 +38,7 @@ export async function createTestApp(
     PTERO_DATA_PATH: join(dataDir, 'ptero.json'),
     STAFF_DOCS_DATA_PATH: join(dataDir, 'staff-docs.json'),
     TICKET_TOOL_DATA_PATH: join(dataDir, 'ticket-tool.json'),
+    DISCORD_BRIDGE_DATA_PATH: join(dataDir, 'discord-bridge.json'),
     TICKETS_DATA_PATH: join(dataDir, 'tickets.json'),
     CORS_ORIGIN: 'http://localhost:5173',
   };

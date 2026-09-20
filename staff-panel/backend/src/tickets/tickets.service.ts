@@ -4,6 +4,8 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
+import { DiscordBridgeCredentialsStore } from './discord-bridge-credentials.store';
 import { TicketToolCredentialsStore } from './ticket-tool-credentials.store';
 import { verifyTicketToolSignature } from './ticket-tool-signature';
 import { TicketsStore } from './tickets.store';
@@ -13,6 +15,9 @@ import type {
   TicketDetail,
   TicketListItem,
 } from './tickets.types';
+import type { BridgeUpsertDto } from './dto/bridge-upsert.dto';
+import type { BridgeMessageDto } from './dto/bridge-message.dto';
+import type { BridgeCloseDto } from './dto/bridge-close.dto';
 
 const TT_API_BASE = 'https://api.ticket-tool.app/v1';
 
@@ -22,12 +27,14 @@ export class TicketsService {
 
   constructor(
     private readonly creds: TicketToolCredentialsStore,
+    private readonly bridgeCreds: DiscordBridgeCredentialsStore,
     private readonly store: TicketsStore,
   ) {}
 
   list(): { items: TicketListItem[]; configured: boolean } {
     return {
       configured:
+        this.bridgeCreds.isConfigured() ||
         this.creds.isApiConfigured() ||
         this.creds.isWebhookConfigured() ||
         this.store.list().length > 0,
@@ -41,8 +48,129 @@ export class TicketsService {
   }
 
   /**
+   * Auth for Discord bridge ingest — NOT staff cookie.
+   * Accepts Authorization: Bearer <secret> or X-Staff-Bridge-Secret.
+   */
+  assertBridgeAuth(opts: {
+    authorization?: string;
+    bridgeSecretHeader?: string;
+  }): void {
+    const expected = this.bridgeCreds.getSecret();
+    if (!expected || expected === 'CHANGE_ME') {
+      throw new UnauthorizedException(
+        'Discord bridge-secret niet geconfigureerd',
+      );
+    }
+    const fromBearer = extractBearer(opts.authorization);
+    const fromHeader = (opts.bridgeSecretHeader || '').trim();
+    const provided = fromBearer || fromHeader;
+    if (!provided || !safeEqual(provided, expected)) {
+      throw new UnauthorizedException('Ongeldig bridge-secret');
+    }
+  }
+
+  bridgeUpsert(dto: BridgeUpsertDto): { ok: true; id: string } {
+    const now = new Date().toISOString();
+    const existing = this.store.findByChannelId(dto.channelId);
+    const id = existing?.id ?? dto.channelId;
+    const ticketNumber = parseTicketNumber(dto.channelName);
+    const subject =
+      dto.channelName ||
+      (ticketNumber != null ? `Ticket #${ticketNumber}` : 'Discord-ticket');
+    const player =
+      (dto.openerTag && dto.openerTag.trim()) ||
+      existing?.player ||
+      (dto.openerId && dto.openerId.trim()) ||
+      '';
+
+    const mapped: StoredTicket = {
+      id,
+      ticketNumber: existing?.ticketNumber ?? ticketNumber,
+      subject,
+      player,
+      status: existing?.status === 'CLOSED' ? 'OPEN' : existing?.status || 'OPEN',
+      priority: existing?.priority ?? null,
+      claimedBy: existing?.claimedBy ?? null,
+      categoryId: dto.categoryId ?? existing?.categoryId ?? null,
+      channelId: dto.channelId,
+      guildId: dto.guildId,
+      channelName: dto.channelName,
+      openerId: dto.openerId ?? existing?.openerId ?? null,
+      source: 'discord-bridge',
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      closedAt: null,
+      messages: [],
+      raw: {
+        channelId: dto.channelId,
+        guildId: dto.guildId,
+        channelName: dto.channelName,
+      },
+    };
+    this.store.upsert(mapped);
+    return { ok: true, id };
+  }
+
+  bridgeMessage(dto: BridgeMessageDto): { ok: true; id: string } {
+    let ticket = this.store.findByChannelId(dto.channelId);
+    if (!ticket) {
+      const now = new Date().toISOString();
+      ticket = this.store.upsert({
+        id: dto.channelId,
+        ticketNumber: null,
+        subject: 'Discord-ticket',
+        player: dto.authorTag || '',
+        status: 'OPEN',
+        priority: null,
+        claimedBy: null,
+        categoryId: null,
+        channelId: dto.channelId,
+        guildId: null,
+        channelName: null,
+        openerId: dto.isBot || dto.isWebhook ? null : dto.authorId,
+        source: 'discord-bridge',
+        createdAt: now,
+        updatedAt: now,
+        closedAt: null,
+        messages: [],
+      });
+    }
+
+    const attachments = Array.isArray(dto.attachments)
+      ? dto.attachments.filter((u) => typeof u === 'string' && u.trim())
+      : [];
+    let content = (dto.content || '').trim();
+    if (attachments.length > 0) {
+      const urls = attachments.join('\n');
+      content = content ? `${content}\n${urls}` : urls;
+    }
+
+    const message: StoredTicketMessage = {
+      id: dto.messageId,
+      content,
+      author: dto.authorTag || dto.authorId || 'onbekend',
+      authorId: dto.authorId || null,
+      createdAt: dto.timestamp || new Date().toISOString(),
+      attachments,
+      isBot: Boolean(dto.isBot),
+      isWebhook: Boolean(dto.isWebhook),
+    };
+    this.store.appendMessage(ticket.id, message);
+    return { ok: true, id: ticket.id };
+  }
+
+  bridgeClose(dto: BridgeCloseDto): { ok: true; id: string | null } {
+    const ticket = this.store.findByChannelId(dto.channelId);
+    if (!ticket) {
+      return { ok: true, id: null };
+    }
+    this.store.close(ticket.id);
+    return { ok: true, id: ticket.id };
+  }
+
+  /**
    * Verify HMAC + timestamp, then upsert local ticket from webhook payload.
-   * Public endpoint — auth is signature, not staff session.
+   * Optional Ticket Tool Pro path — auth is signature, not staff session.
    */
   handleWebhook(opts: {
     rawBody: string;
@@ -84,8 +212,7 @@ export class TicketsService {
   }
 
   /**
-   * Pull tickets from Ticket Tool REST API and upsert local store.
-   * Requires tickets:manage + configured API token.
+   * Optional Ticket Tool Pro REST sync. Prefer Discord bridge for free plans.
    */
   async syncFromApi(): Promise<{
     ok: boolean;
@@ -93,9 +220,13 @@ export class TicketsService {
     message: string;
   }> {
     if (!this.creds.isApiConfigured()) {
-      throw new ServiceUnavailableException(
-        'Ticket Tool API-token niet geconfigureerd. Stel deze in onder Instellingen.',
-      );
+      // Local reload — no Pro API needed when using Discord bridge
+      const count = this.store.list().length;
+      return {
+        ok: true,
+        upserted: count,
+        message: `${count} ticket(s) lokaal herladen (geen Ticket Tool Pro sync).`,
+      };
     }
     const token = this.creds.getSecrets().apiToken;
     let cursor: string | null = null;
@@ -188,6 +319,30 @@ export class TicketsService {
   }
 }
 
+function extractBearer(authorization?: string): string {
+  if (!authorization) return '';
+  const m = /^Bearer\s+(.+)$/i.exec(authorization.trim());
+  return m ? m[1].trim() : '';
+}
+
+function safeEqual(a: string, b: string): boolean {
+  try {
+    const ba = Buffer.from(a);
+    const bb = Buffer.from(b);
+    if (ba.length !== bb.length) return false;
+    return timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
+
+function parseTicketNumber(name: string): number | null {
+  const m = /(\d+)\s*$/.exec(name || '');
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 function toListItem(t: StoredTicket): TicketListItem {
   return {
     id: t.id,
@@ -197,6 +352,9 @@ function toListItem(t: StoredTicket): TicketListItem {
     ticketNumber: t.ticketNumber,
     claimedBy: t.claimedBy,
     priority: t.priority,
+    channelId: t.channelId,
+    channelName: t.channelName ?? null,
+    source: t.source ?? null,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };
@@ -206,7 +364,8 @@ function toDetail(t: StoredTicket): TicketDetail {
   return {
     ...toListItem(t),
     categoryId: t.categoryId,
-    channelId: t.channelId,
+    guildId: t.guildId ?? null,
+    openerId: t.openerId ?? null,
     closedAt: t.closedAt,
     messages: t.messages,
   };
@@ -289,6 +448,7 @@ function mapApiTicket(row: unknown): StoredTicket | null {
     claimedBy: claimedName(row),
     categoryId: pickString(row, 'categoryId') || null,
     channelId: pickString(row, 'channelId') || null,
+    source: 'ticket-tool',
     createdAt: pickString(row, 'createdAt') || now,
     updatedAt: pickString(row, 'updatedAt') || now,
     closedAt: pickString(row, 'closedAt') || null,
@@ -320,6 +480,7 @@ function mapWebhookTicket(
     claimedBy: claimedName(data),
     categoryId: pickString(data, 'categoryId') || null,
     channelId: pickString(data, 'channelId') || null,
+    source: 'ticket-tool',
     createdAt: pickString(data, 'createdAt') || now,
     updatedAt: pickString(data, 'updatedAt') || now,
     closedAt:
@@ -346,6 +507,7 @@ function stubTicket(id: string, data: unknown): StoredTicket {
       claimedBy: null,
       categoryId: null,
       channelId: null,
+      source: 'ticket-tool',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       closedAt: null,

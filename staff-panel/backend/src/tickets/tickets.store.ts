@@ -35,6 +35,13 @@ export class TicketsStore implements OnModuleInit {
     return this.byId.get(id);
   }
 
+  findByChannelId(channelId: string): StoredTicket | undefined {
+    for (const t of this.byId.values()) {
+      if (t.channelId === channelId || t.id === channelId) return t;
+    }
+    return undefined;
+  }
+
   upsert(ticket: StoredTicket): StoredTicket {
     const existing = this.byId.get(ticket.id);
     const merged: StoredTicket = existing
@@ -59,6 +66,18 @@ export class TicketsStore implements OnModuleInit {
     t.updatedAt = message.createdAt || new Date().toISOString();
     this.byId.set(ticketId, t);
     this.persist();
+  }
+
+  close(ticketId: string, closedAt?: string): StoredTicket | undefined {
+    const t = this.byId.get(ticketId);
+    if (!t) return undefined;
+    const now = closedAt || new Date().toISOString();
+    t.status = 'CLOSED';
+    t.closedAt = now;
+    t.updatedAt = now;
+    this.byId.set(ticketId, t);
+    this.persist();
+    return t;
   }
 
   remove(id: string): void {
@@ -110,6 +129,10 @@ function normalizeTicket(row: StoredTicket): StoredTicket {
     claimedBy: typeof row.claimedBy === 'string' ? row.claimedBy : null,
     categoryId: typeof row.categoryId === 'string' ? row.categoryId : null,
     channelId: typeof row.channelId === 'string' ? row.channelId : null,
+    guildId: typeof row.guildId === 'string' ? row.guildId : null,
+    channelName: typeof row.channelName === 'string' ? row.channelName : null,
+    openerId: typeof row.openerId === 'string' ? row.openerId : null,
+    source: typeof row.source === 'string' ? row.source : null,
     createdAt:
       typeof row.createdAt === 'string'
         ? row.createdAt

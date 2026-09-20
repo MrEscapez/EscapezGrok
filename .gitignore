@@ -32,6 +32,7 @@ staff-panel/backend/data/rbac.json
 staff-panel/backend/data/staff-docs.json
 staff-panel/backend/data/tickets.json
 staff-panel/backend/data/ticket-tool.json
+staff-panel/backend/data/discord-bridge.json
 
 # TS incremental
 **/tsconfig*.tsbuildinfo
