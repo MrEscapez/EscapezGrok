@@ -15,9 +15,11 @@ describe('can()', () => {
   });
 
   it('returns false when permission is missing (helper case)', () => {
-    const helper = ['dashboard:view', 'players:view', 'reports:view', 'tickets:view'];
+    const helper = ['dashboard:view', 'players:view', 'reports:view', 'tickets:view', 'staff_docs:read'];
     expect(can(helper, PERMISSIONS.SETTINGS_MANAGE)).toBe(false);
     expect(can(helper, PERMISSIONS.DASHBOARD_VIEW)).toBe(true);
+    expect(can(helper, PERMISSIONS.STAFF_DOCS_READ)).toBe(true);
+    expect(can(helper, PERMISSIONS.STAFF_DOCS_WRITE)).toBe(false);
   });
 
   it('canAny / canAll helpers', () => {

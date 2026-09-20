@@ -38,6 +38,9 @@ export const Permissions = {
   /** Send RCON / console commands */
   SERVER_COMMAND: 'server:command',
 
+  STAFF_DOCS_READ: 'staff_docs:read',
+  STAFF_DOCS_WRITE: 'staff_docs:write',
+
   AUDIT_VIEW: 'audit:view',
 
   USERS_VIEW: 'users:view',
@@ -71,6 +74,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'console:write': 'Console schrijven',
   'server:power': 'Server power (start/stop/restart)',
   'server:command': 'RCON / console-commando’s',
+  'staff_docs:read': 'Staff Info bekijken',
+  'staff_docs:write': 'Staff Info bewerken',
   'audit:view': 'Auditlog bekijken',
   'users:view': 'Gebruikers bekijken',
   'users:manage': 'Gebruikers & rollen beheren',

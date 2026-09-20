@@ -59,6 +59,15 @@ export function ServerPage() {
     null,
   );
   const [powerTarget, setPowerTarget] = useState<string | undefined>(undefined);
+  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('staff-panel.server-favorites');
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [rconCommand, setRconCommand] = useState('list');
   const [rconConfirm, setRconConfirm] = useState(false);
   const [rconOutput, setRconOutput] = useState<string | null>(null);
@@ -87,6 +96,42 @@ export function ServerPage() {
   const status = statusQuery.data;
   const list = listQuery.data;
   const safeCommands = safeQuery.data?.commands ?? ['list', 'tps', 'help'];
+
+  const selectedServer = useMemo(() => {
+    if (!list?.items?.length) return null;
+    if (selectedServerId) {
+      return list.items.find((s) => s.identifier === selectedServerId) ?? null;
+    }
+    return null;
+  }, [list, selectedServerId]);
+
+  function toggleFavorite(identifier: string) {
+    setFavorites((prev) => {
+      const next = prev.includes(identifier)
+        ? prev.filter((x) => x !== identifier)
+        : [...prev, identifier];
+      try {
+        localStorage.setItem(
+          'staff-panel.server-favorites',
+          JSON.stringify(next),
+        );
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  const sortedServers = useMemo(() => {
+    const items = [...(list?.items ?? [])];
+    items.sort((a, b) => {
+      const af = favorites.includes(a.identifier) ? 0 : 1;
+      const bf = favorites.includes(b.identifier) ? 0 : 1;
+      if (af !== bf) return af - bf;
+      return a.name.localeCompare(b.name);
+    });
+    return items;
+  }, [list, favorites]);
 
   const isSafeSelected = useMemo(() => {
     const cmd = rconCommand.trim().toLowerCase();
@@ -168,23 +213,22 @@ export function ServerPage() {
     <section className="page">
       <header className="page__header">
         <h1 className="page__title page__title-row">
-          <span>Server</span>
-          <HelpTip label="Uitleg Server-pagina" wide>
+          <span>Servers</span>
+          <HelpTip label="Uitleg Servers-pagina" wide>
             <p>
-              Status komt van Pterodactyl en/of RCON-stubs. Power start/stop/restart
-              vereist permissie <code>server:power</code>. RCON-commando&apos;s
-              vereisen <code>server:command</code>; veilige allowlist (list/tps)
-              zonder extra bevestiging.
+              Beheer alle Pterodactyl-servers vanuit dit panel — geen aparte Ptero
+              staff-login nodig. Power vereist <code>server:power</code>; RCON
+              vereist <code>server:command</code>.
             </p>
             <p>
-              Geheimen (RCON/Ptero) staan alleen in de backend-omgeving — nooit in
-              deze UI of in Vite-env.
+              Geheimen (RCON/Ptero API-keys) staan alleen op de backend — nooit in
+              deze UI of Vite-env. Favorieten worden lokaal in je browser bewaard.
             </p>
           </HelpTip>
         </h1>
         <p className="page__desc">
-          Pterodactyl-serverlijst, power-acties en veilige RCON. Credentials
-          blijven op de backend — hier zie je nooit wachtwoorden of API-keys.
+          Multi-server overzicht via de Application API. Kies een server in de
+          lijst of switcher; power en RCON lopen via bestaande panel-rechten.
         </p>
       </header>
 
@@ -218,11 +262,14 @@ export function ServerPage() {
         {list && !list.configured ? (
           <div className="empty-state empty-state--warn">
             <p>
+              <strong>Pterodactyl is nog niet geconfigureerd.</strong>
+            </p>
+            <p>
               {list.message ??
-                'Geen Pterodactyl-credentials. Configureer panel-URL en API-key.'}
+                'Vul panel-URL en Application API-key in onder Instellingen. Staff heeft geen eigen Ptero-account nodig.'}
             </p>
             <Link className="server-btn server-btn--primary" to="/settings">
-              Naar Instellingen
+              Naar Instellingen → Pterodactyl
             </Link>
           </div>
         ) : null}
@@ -234,66 +281,135 @@ export function ServerPage() {
         ) : null}
 
         {list?.configured && list.items.length > 0 ? (
-          <div className="server-table-wrap">
-            <table className="server-table">
-              <thead>
-                <tr>
-                  <th>Naam</th>
-                  <th>Status</th>
-                  <th>Power</th>
-                  <th>Spelers</th>
-                  <th>Acties</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.items.map((s) => (
-                  <tr key={String(s.identifier || s.id)}>
-                    <td>
-                      <strong>{s.name}</strong>
-                      <div className="server-table__sub mono">
-                        {s.identifier}
-                      </div>
-                    </td>
-                    <td>
-                      {s.suspended
-                        ? 'Suspended'
-                        : s.status
-                          ? s.status
-                          : '—'}
-                    </td>
-                    <td>{pteroPowerNl(s.power)}</td>
-                    <td>
-                      {s.playersOnline != null
-                        ? `${s.playersOnline}${
-                            s.maxPlayers != null ? ` / ${s.maxPlayers}` : ''
-                          }`
-                        : '—'}
-                    </td>
-                    <td>
-                      <div className="server-table__actions">
-                        <button
-                          type="button"
-                          className="server-chip"
-                          onClick={() =>
-                            requestPower('restart', s.identifier)
-                          }
-                        >
-                          Herstart
-                        </button>
-                        <button
-                          type="button"
-                          className="server-chip"
-                          onClick={() => requestPower('stop', s.identifier)}
-                        >
-                          Stop
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+          <>
+            <div className="server-switcher">
+              <label className="server-label" htmlFor="server-switch">
+                Actieve server (switcher)
+              </label>
+              <select
+                id="server-switch"
+                className="server-input"
+                value={selectedServerId ?? ''}
+                onChange={(e) =>
+                  setSelectedServerId(e.target.value || null)
+                }
+              >
+                <option value="">— Default / geen selectie —</option>
+                {sortedServers.map((s) => (
+                  <option key={s.identifier} value={s.identifier}>
+                    {favorites.includes(s.identifier) ? '★ ' : ''}
+                    {s.name} ({s.identifier}) — {pteroPowerNl(s.power)}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </select>
+              {selectedServer && (
+                <p className="dash-card__hint">
+                  Geselecteerd: <strong>{selectedServer.name}</strong> · power
+                  knoppen hieronder gebruiken deze identifier.
+                </p>
+              )}
+            </div>
+            <div className="server-table-wrap">
+              <table className="server-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Naam</th>
+                    <th>Status</th>
+                    <th>Power</th>
+                    <th>Spelers</th>
+                    <th>Acties</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedServers.map((s) => (
+                    <tr
+                      key={String(s.identifier || s.id)}
+                      className={
+                        selectedServerId === s.identifier
+                          ? 'server-table__row--active'
+                          : undefined
+                      }
+                    >
+                      <td>
+                        <button
+                          type="button"
+                          className="server-fav"
+                          title={
+                            favorites.includes(s.identifier)
+                              ? 'Favoriet verwijderen'
+                              : 'Als favoriet markeren'
+                          }
+                          onClick={() => toggleFavorite(s.identifier)}
+                        >
+                          {favorites.includes(s.identifier) ? '★' : '☆'}
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="server-select-name"
+                          onClick={() => setSelectedServerId(s.identifier)}
+                        >
+                          <strong>{s.name}</strong>
+                        </button>
+                        <div className="server-table__sub mono">
+                          {s.identifier}
+                        </div>
+                      </td>
+                      <td>
+                        {s.suspended
+                          ? 'Suspended'
+                          : s.status
+                            ? s.status
+                            : '—'}
+                      </td>
+                      <td>{pteroPowerNl(s.power)}</td>
+                      <td>
+                        {s.playersOnline != null
+                          ? `${s.playersOnline}${
+                              s.maxPlayers != null ? ` / ${s.maxPlayers}` : ''
+                            }`
+                          : '—'}
+                      </td>
+                      <td>
+                        <div className="server-table__actions">
+                          <button
+                            type="button"
+                            className="server-chip"
+                            disabled={!canPower || powerMutation.isPending}
+                            onClick={() =>
+                              requestPower('start', s.identifier)
+                            }
+                          >
+                            Start
+                          </button>
+                          <button
+                            type="button"
+                            className="server-chip"
+                            disabled={!canPower || powerMutation.isPending}
+                            onClick={() =>
+                              requestPower('restart', s.identifier)
+                            }
+                          >
+                            Herstart
+                          </button>
+                          <button
+                            type="button"
+                            className="server-chip"
+                            disabled={!canPower || powerMutation.isPending}
+                            onClick={() => requestPower('stop', s.identifier)}
+                          >
+                            Stop
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : null}
       </article>
 
@@ -395,11 +511,18 @@ export function ServerPage() {
       <article className="dash-card server-card--actions">
         <div className="dash-card__head">
           <h2 className="dash-card__title dash-card__title-row">
-            <span>Power-acties (default server)</span>
+            <span>
+              Power-acties
+              {selectedServer
+                ? ` — ${selectedServer.name}`
+                : ' (default server)'}
+            </span>
             <HelpTip label="Uitleg power-acties">
               <p>
-                Start/stop/restart van de default-server via Pterodactyl Client API.
-                Bevestigingsdialoog verplicht. Permissie: <code>server:power</code>.
+                Start/stop/restart via Pterodactyl Client API. Gebruikt de
+                geselecteerde server uit de switcher, anders de default server-id
+                uit Instellingen. Bevestiging verplicht. Permissie:{' '}
+                <code>server:power</code>.
               </p>
             </HelpTip>
           </h2>
@@ -407,6 +530,7 @@ export function ServerPage() {
         <p className="dash-card__hint">
           Stoppen en herstarten vereisen bevestiging + recht{' '}
           <code>server:power</code>.
+          {!canPower && ' Jij hebt dit recht niet.'}
         </p>
         <div className="server-power-btns">
           {(['start', 'stop', 'restart'] as ServerPowerAction[]).map(
@@ -421,7 +545,9 @@ export function ServerPage() {
                       ? 'server-btn server-btn--stop'
                       : 'server-btn server-btn--restart'
                 }
-                onClick={() => requestPower(action)}
+                onClick={() =>
+                  requestPower(action, selectedServer?.identifier)
+                }
                 disabled={powerMutation.isPending || !canPower}
               >
                 {POWER_LABELS[action]}
@@ -445,7 +571,8 @@ export function ServerPage() {
             </h2>
         </div>
         <p className="dash-card__hint">
-          Veilige allowlist zonder extra bevestiging:{' '}
+          RCON gebruikt de backend <code>RCON_*</code> host (één verbinding),
+          niet per Ptero-server. Veilige allowlist zonder extra bevestiging:{' '}
           {safeCommands.map((c) => (
             <button
               key={c}

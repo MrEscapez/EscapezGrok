@@ -21,6 +21,8 @@ export const PERMISSIONS = {
   CONSOLE_WRITE: 'console:write',
   SERVER_POWER: 'server:power',
   SERVER_COMMAND: 'server:command',
+  STAFF_DOCS_READ: 'staff_docs:read',
+  STAFF_DOCS_WRITE: 'staff_docs:write',
   AUDIT_VIEW: 'audit:view',
   USERS_VIEW: 'users:view',
   USERS_MANAGE: 'users:manage',
