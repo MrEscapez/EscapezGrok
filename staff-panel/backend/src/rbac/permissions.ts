@@ -45,6 +45,9 @@ export const Permissions = {
 
   USERS_VIEW: 'users:view',
   USERS_MANAGE: 'users:manage',
+
+  /** Admin-only Ptero/API debug overview */
+  DEBUG_VIEW: 'debug:view',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];
@@ -79,6 +82,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'audit:view': 'Auditlog bekijken',
   'users:view': 'Gebruikers bekijken',
   'users:manage': 'Gebruikers & rollen beheren',
+  'debug:view': 'Debug-overzicht (admin)',
 };
 
 /**

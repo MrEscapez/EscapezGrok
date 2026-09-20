@@ -1639,3 +1639,73 @@ button {
   justify-content: flex-end;
   margin-top: 0.5rem;
 }
+
+/* —— Dashboard stats —— */
+.dash-grid--stats {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.dash-stat__value {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+/* —— Live console —— */
+.console-panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.console-panel__target {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.console-panel__out {
+  background: #0b0d12;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  min-height: 220px;
+  max-height: 420px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #d7dde8;
+}
+
+.console-panel__empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.console-panel__line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console-panel__form {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.console-panel__input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.console-panel__input-row .server-input {
+  flex: 1;
+}

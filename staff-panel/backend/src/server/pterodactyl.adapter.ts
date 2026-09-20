@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import WebSocket from 'ws';
 import { PteroCredentialsStore } from './ptero-credentials.store';
 
 export type PteroPowerState =
@@ -55,6 +56,22 @@ export type PteroTestResult = {
   message: string;
   httpStatus?: number;
   serverCount?: number;
+};
+
+export type PteroWebsocketCredentials = {
+  configured: boolean;
+  stub: boolean;
+  token?: string;
+  socket?: string;
+  serverIdentifier?: string;
+  message?: string;
+};
+
+export type PteroConsoleCommandResult = {
+  ok: boolean;
+  stub: boolean;
+  message: string;
+  command: string;
 };
 
 /**
@@ -355,6 +372,203 @@ export class PterodactylAdapter {
         message: 'Pterodactyl niet bereikbaar voor power-actie',
       };
     }
+  }
+
+
+  /** Client API key present (required for console websocket). */
+  isClientApiKeyConfigured(): boolean {
+    return this.creds.isClientApiKeyConfigured();
+  }
+
+  /**
+   * Fetch short-lived Ptero Client websocket credentials.
+   * Never returns the clientApiKey itself — only token + socket URL.
+   */
+  async getWebsocketCredentials(
+    serverIdentifier?: string,
+  ): Promise<PteroWebsocketCredentials> {
+    if (!this.isClientApiKeyConfigured()) {
+      return {
+        configured: false,
+        stub: true,
+        message:
+          'Client API-key ontbreekt. Configureer een Pterodactyl Client API-key onder Instellingen om de live console te gebruiken.',
+      };
+    }
+
+    const s = this.creds.getSecrets();
+    const serverId = (serverIdentifier || s.defaultServerId || '').trim();
+    if (!serverId || serverId === 'CHANGE_ME') {
+      return {
+        configured: true,
+        stub: true,
+        message:
+          'Geen server geselecteerd. Kies een server of stel een default server-id in onder Instellingen.',
+      };
+    }
+
+    const url = `${s.baseUrl}/api/client/servers/${encodeURIComponent(serverId)}/websocket`;
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: this.clientHeaders(s.clientApiKey),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) {
+        this.logger.warn(`Ptero websocket HTTP ${res.status}`);
+        return {
+          configured: true,
+          stub: false,
+          serverIdentifier: serverId,
+          message: `Console-credentials ophalen mislukt (HTTP ${res.status}). Controleer Client API-key en server-id.`,
+        };
+      }
+      const json = (await res.json()) as {
+        data?: { token?: string; socket?: string };
+      };
+      const token = json.data?.token;
+      const socket = json.data?.socket;
+      if (!token || !socket) {
+        return {
+          configured: true,
+          stub: false,
+          serverIdentifier: serverId,
+          message: 'Pterodactyl gaf geen geldige websocket-credentials terug.',
+        };
+      }
+      return {
+        configured: true,
+        stub: false,
+        token,
+        socket,
+        serverIdentifier: serverId,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'unknown error';
+      this.logger.warn(`Ptero websocket failed: ${msg}`);
+      return {
+        configured: true,
+        stub: false,
+        serverIdentifier: serverId,
+        message: 'Pterodactyl niet bereikbaar voor console-websocket.',
+      };
+    }
+  }
+
+  /**
+   * Send one console command via a short-lived Ptero websocket (backend-only).
+   * Uses clientApiKey — never exposed to the frontend.
+   */
+  async sendConsoleCommand(
+    command: string,
+    serverIdentifier?: string,
+  ): Promise<PteroConsoleCommandResult> {
+    const sanitized = command.replace(/[\x00-\x1f\x7f]/g, '').trim();
+    if (!sanitized) {
+      return {
+        ok: false,
+        stub: false,
+        command: '',
+        message: 'Leeg console-commando.',
+      };
+    }
+    if (sanitized.length > 500) {
+      return {
+        ok: false,
+        stub: false,
+        command: sanitized.slice(0, 500),
+        message: 'Commando te lang (max 500 tekens).',
+      };
+    }
+
+    const creds = await this.getWebsocketCredentials(serverIdentifier);
+    if (!creds.token || !creds.socket) {
+      return {
+        ok: false,
+        stub: creds.stub,
+        command: sanitized,
+        message: creds.message || 'Geen console-credentials beschikbaar.',
+      };
+    }
+
+    return new Promise<PteroConsoleCommandResult>((resolve) => {
+      let settled = false;
+      const finish = (result: PteroConsoleCommandResult) => {
+        if (settled) return;
+        settled = true;
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
+        resolve(result);
+      };
+
+      const ws = new WebSocket(creds.socket!);
+      const timer = setTimeout(() => {
+        finish({
+          ok: false,
+          stub: false,
+          command: sanitized,
+          message: 'Timeout bij verzenden van console-commando.',
+        });
+      }, 12_000);
+
+      ws.on('open', () => {
+        ws.send(JSON.stringify({ event: 'auth', args: [creds.token] }));
+      });
+
+      ws.on('message', (raw) => {
+        let parsed: { event?: string } = {};
+        try {
+          parsed = JSON.parse(String(raw)) as { event?: string };
+        } catch {
+          return;
+        }
+        if (parsed.event === 'auth success') {
+          ws.send(
+            JSON.stringify({ event: 'send command', args: [sanitized] }),
+          );
+          clearTimeout(timer);
+          finish({
+            ok: true,
+            stub: false,
+            command: sanitized,
+            message: 'Commando verzonden naar console.',
+          });
+        } else if (parsed.event === 'auth error' || parsed.event === 'jwt error') {
+          clearTimeout(timer);
+          finish({
+            ok: false,
+            stub: false,
+            command: sanitized,
+            message: 'Console-authenticatie mislukt (ongeldige of verlopen token).',
+          });
+        }
+      });
+
+      ws.on('error', () => {
+        clearTimeout(timer);
+        finish({
+          ok: false,
+          stub: false,
+          command: sanitized,
+          message: 'Websocket-fout bij verzenden van console-commando.',
+        });
+      });
+
+      ws.on('close', () => {
+        clearTimeout(timer);
+        if (!settled) {
+          finish({
+            ok: false,
+            stub: false,
+            command: sanitized,
+            message: 'Websocket gesloten vóór bevestiging.',
+          });
+        }
+      });
+    });
   }
 
   private async fetchClientPower(

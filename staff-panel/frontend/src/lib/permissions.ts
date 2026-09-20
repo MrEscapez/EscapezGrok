@@ -26,6 +26,7 @@ export const PERMISSIONS = {
   AUDIT_VIEW: 'audit:view',
   USERS_VIEW: 'users:view',
   USERS_MANAGE: 'users:manage',
+  DEBUG_VIEW: 'debug:view',
 } as const;
 
 export type PermissionId = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

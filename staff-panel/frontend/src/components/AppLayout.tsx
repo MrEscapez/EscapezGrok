@@ -17,6 +17,7 @@ const NAV_ITEMS: { to: string; label: string; permission: string }[] = [
   { to: '/audit', label: 'Audit', permission: 'audit:view' },
   { to: '/users', label: 'Gebruikers', permission: 'users:view' },
   { to: '/settings', label: 'Instellingen', permission: 'settings:view' },
+  { to: '/debug', label: 'Debug', permission: 'debug:view' },
 ];
 
 export function AppLayout() {

@@ -84,6 +84,14 @@ export class PteroCredentialsStore implements OnModuleInit {
     return Boolean(s.baseUrl && s.apiKey && s.apiKey !== 'CHANGE_ME');
   }
 
+  /** True when a dedicated Client API key is present (console/websocket). */
+  isClientApiKeyConfigured(): boolean {
+    const s = this.getSecrets();
+    return Boolean(
+      s.baseUrl && s.clientApiKey && s.clientApiKey !== 'CHANGE_ME',
+    );
+  }
+
   /** True when client power/resources against default server is possible. */
   isClientPowerConfigured(): boolean {
     const s = this.getSecrets();
