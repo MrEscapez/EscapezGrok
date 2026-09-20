@@ -4,10 +4,13 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  MessageEvent,
   Post,
   Query,
   Req,
+  Sse,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { RateLimit } from '../common/rate-limit.decorator';
 import { Permissions } from '../rbac/permissions';
 import { RequirePermissions } from '../rbac/require-permissions.decorator';
@@ -35,8 +38,8 @@ export class ServerController {
   }
 
   /**
-   * Short-lived Ptero Client websocket credentials (token + socket).
-   * Never returns clientApiKey. Requires console:read.
+   * Console session probe for the SPA. Does NOT return Wings token/socket
+   * (browser Origin is blocked by Wings). Requires console:read.
    */
   @Get('console/websocket')
   @RequirePermissions(Permissions.CONSOLE_READ)
@@ -44,6 +47,35 @@ export class ServerController {
     @Query('serverIdentifier') serverIdentifier?: string,
   ) {
     return this.server.getConsoleWebsocket(serverIdentifier);
+  }
+
+  /**
+   * Live console SSE proxy: backend opens Wings WS with Panel Origin and
+   * forwards console output. Cookie session required. Requires console:read.
+   */
+  @Sse('console/stream')
+  @RequirePermissions(Permissions.CONSOLE_READ)
+  consoleStream(
+    @Req() req: StaffRequest,
+    @Query('serverIdentifier') serverIdentifier?: string,
+  ): Observable<MessageEvent> {
+    return new Observable<MessageEvent>((subscriber) => {
+      const stop = this.server.streamConsole(serverIdentifier, (ev) => {
+        subscriber.next({ data: ev });
+        if (ev.kind === 'error') {
+          subscriber.complete();
+        }
+      });
+      const onClose = () => {
+        stop();
+        subscriber.complete();
+      };
+      req.on('close', onClose);
+      return () => {
+        req.off('close', onClose);
+        stop();
+      };
+    });
   }
 
   /**

@@ -538,11 +538,17 @@ export function deleteStaffDocArticle(id: string): Promise<{ ok: true }> {
 export type ConsoleWebsocketResponse = {
   configured: boolean;
   stub: boolean;
-  token?: string;
-  socket?: string;
+  /** Always sse — browser must not open Wings wss directly (Origin blocked). */
+  mode?: 'sse';
   serverIdentifier?: string;
   message?: string;
 };
+
+export type ConsoleStreamEvent =
+  | { kind: 'ready'; serverIdentifier?: string }
+  | { kind: 'line'; line: string }
+  | { kind: 'error'; message: string }
+  | { kind: 'ping' };
 
 export type ConsoleCommandResult = {
   ok: boolean;
@@ -559,7 +565,7 @@ export type DebugOverview = {
   clientApiKeyConfigured: boolean;
 };
 
-/** Short-lived Ptero WS credentials — never includes clientApiKey. */
+/** Console session probe — never includes Wings token/socket or clientApiKey. */
 export function fetchConsoleWebsocket(
   serverIdentifier?: string,
 ): Promise<ConsoleWebsocketResponse> {
@@ -567,6 +573,14 @@ export function fetchConsoleWebsocket(
     ? `?serverIdentifier=${encodeURIComponent(serverIdentifier)}`
     : '';
   return apiFetch<ConsoleWebsocketResponse>(`/server/console/websocket${qs}`);
+}
+
+/** Same-origin SSE proxy for live console (cookie auth). */
+export function consoleStreamUrl(serverIdentifier?: string): string {
+  const qs = serverIdentifier
+    ? `?serverIdentifier=${encodeURIComponent(serverIdentifier)}`
+    : '';
+  return apiUrl(`/server/console/stream${qs}`);
 }
 
 export function postConsoleCommand(
