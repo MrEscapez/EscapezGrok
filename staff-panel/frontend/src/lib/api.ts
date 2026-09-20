@@ -544,3 +544,97 @@ export function updateRolePermissions(
     body: JSON.stringify({ permissions }),
   });
 }
+
+/* —— Staff Info / kennisbank —— */
+export type StaffDocCategory = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdBy: string;
+  createdAt: string;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export type StaffDocArticle = {
+  id: string;
+  categoryId: string;
+  title: string;
+  body: string;
+  createdBy: string;
+  createdAt: string;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export function fetchStaffDocCategories(): Promise<{ items: StaffDocCategory[] }> {
+  return apiFetch<{ items: StaffDocCategory[] }>('/staff-docs/categories');
+}
+
+export function fetchStaffDocArticles(
+  categoryId?: string,
+): Promise<{ items: StaffDocArticle[] }> {
+  const qs = categoryId
+    ? `?categoryId=${encodeURIComponent(categoryId)}`
+    : '';
+  return apiFetch<{ items: StaffDocArticle[] }>(`/staff-docs/articles${qs}`);
+}
+
+export function fetchStaffDocArticle(id: string): Promise<StaffDocArticle> {
+  return apiFetch<StaffDocArticle>(`/staff-docs/articles/${encodeURIComponent(id)}`);
+}
+
+export function createStaffDocCategory(input: {
+  name: string;
+  sortOrder?: number;
+}): Promise<StaffDocCategory> {
+  return apiFetch<StaffDocCategory>('/staff-docs/categories', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateStaffDocCategory(
+  id: string,
+  input: { name?: string; sortOrder?: number },
+): Promise<StaffDocCategory> {
+  return apiFetch<StaffDocCategory>(
+    `/staff-docs/categories/${encodeURIComponent(id)}`,
+    { method: 'PUT', body: JSON.stringify(input) },
+  );
+}
+
+export function deleteStaffDocCategory(id: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>(
+    `/staff-docs/categories/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+}
+
+export function createStaffDocArticle(input: {
+  categoryId: string;
+  title: string;
+  body: string;
+}): Promise<StaffDocArticle> {
+  return apiFetch<StaffDocArticle>('/staff-docs/articles', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateStaffDocArticle(
+  id: string,
+  input: { categoryId?: string; title?: string; body?: string },
+): Promise<StaffDocArticle> {
+  return apiFetch<StaffDocArticle>(
+    `/staff-docs/articles/${encodeURIComponent(id)}`,
+    { method: 'PUT', body: JSON.stringify(input) },
+  );
+}
+
+export function deleteStaffDocArticle(id: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>(
+    `/staff-docs/articles/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+}

@@ -13,6 +13,7 @@ import { PlannerModule } from './planner/planner.module';
 import { SettingsModule } from './settings/settings.module';
 import { ServerModule } from './server/server.module';
 import { UsersModule } from './users/users.module';
+import { StaffDocsModule } from './staff-docs/staff-docs.module';
 import { RbacModule } from './rbac/rbac.module';
 import { CommonModule } from './common/common.module';
 import { SessionAuthGuard } from './rbac/session-auth.guard';
@@ -38,6 +39,7 @@ import { PermissionsGuard } from './rbac/permissions.guard';
     SettingsModule,
     ServerModule,
     UsersModule,
+    StaffDocsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: SessionAuthGuard },

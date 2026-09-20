@@ -36,6 +36,7 @@ export async function createTestApp(
     MODULES_DATA_PATH: join(dataDir, 'modules.json'),
     RBAC_DATA_PATH: join(dataDir, 'rbac.json'),
     PTERO_DATA_PATH: join(dataDir, 'ptero.json'),
+    STAFF_DOCS_DATA_PATH: join(dataDir, 'staff-docs.json'),
     CORS_ORIGIN: 'http://localhost:5173',
   };
 

@@ -38,6 +38,8 @@ const MODERATOR_PERMISSIONS: Permission[] = [
   Permissions.SERVER_COMMAND,
   Permissions.AUDIT_VIEW,
   Permissions.USERS_VIEW,
+  Permissions.STAFF_DOCS_READ,
+  Permissions.STAFF_DOCS_WRITE,
   // no settings:manage, users:manage, server:power, planner:publish
 ];
 
@@ -46,6 +48,7 @@ const HELPER_PERMISSIONS: Permission[] = [
   Permissions.PLAYERS_VIEW,
   Permissions.REPORTS_VIEW,
   Permissions.TICKETS_VIEW,
+  Permissions.STAFF_DOCS_READ,
 ];
 
 @Injectable()
@@ -110,6 +113,9 @@ export class RbacStore implements OnModuleInit {
           admin.permissions = [...ALL_PERMISSIONS];
           this.roles.set('admin', admin);
         }
+        // Additive upgrade: merge new catalog defaults into seed roles
+        this.mergeSeedPermissions('moderator', MODERATOR_PERMISSIONS);
+        this.mergeSeedPermissions('helper', HELPER_PERMISSIONS);
         await this.ensureBootstrapUsers();
         await this.persist();
         this.logger.log(`RBAC geladen uit ${this.dataPath}`);
@@ -353,6 +359,17 @@ export class RbacStore implements OnModuleInit {
     this.roles.set(roleId, role);
     await this.persist();
     return this.getRole(roleId)!;
+  }
+
+
+  /** Union seed defaults into an existing role (keeps extra custom grants). */
+  private mergeSeedPermissions(roleId: string, seed: Permission[]): void {
+    const role = this.roles.get(roleId);
+    if (!role) return;
+    const set = new Set<Permission>(role.permissions);
+    for (const p of seed) set.add(p);
+    role.permissions = [...set];
+    this.roles.set(roleId, role);
   }
 
   private sanitizeRoleIds(roleIds: string[]): string[] {

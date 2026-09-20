@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { PlannerPage } from './pages/PlannerPage';
 import { UsersPage } from './pages/UsersPage';
 import { ForbiddenPage } from './pages/ForbiddenPage';
+import { StaffInfoPage } from './pages/StaffInfoPage';
 
 export function App() {
   return (
@@ -56,6 +57,9 @@ export function App() {
           </Route>
           <Route element={<RequirePermission permission="server:view" />}>
             <Route path="server" element={<ServerPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="staff_docs:read" />}>
+            <Route path="staff-info" element={<StaffInfoPage />} />
           </Route>
           <Route element={<RequirePermission permission="audit:view" />}>
             <Route
