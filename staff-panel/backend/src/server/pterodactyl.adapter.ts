@@ -61,11 +61,20 @@ export type PteroTestResult = {
 export type PteroWebsocketCredentials = {
   configured: boolean;
   stub: boolean;
+  /** Present only for backend-internal Wings connections — never send to browsers. */
   token?: string;
   socket?: string;
   serverIdentifier?: string;
   message?: string;
+  /** Browser should use Staff Panel SSE proxy (Wings rejects staff.escapez.be Origin). */
+  mode?: 'sse';
 };
+
+export type PteroConsoleStreamEvent =
+  | { kind: 'ready'; serverIdentifier?: string }
+  | { kind: 'line'; line: string }
+  | { kind: 'error'; message: string }
+  | { kind: 'ping' };
 
 export type PteroConsoleCommandResult = {
   ok: boolean;
@@ -375,6 +384,36 @@ export class PterodactylAdapter {
   }
 
 
+
+  /**
+   * Wings only allows the Panel Origin (e.g. https://panel.escapez.be).
+   * Browser Origin https://staff.escapez.be → 403 → "Websocket-fout".
+   * Backend must impersonate the Panel Origin on every Wings websocket.
+   */
+  private panelOrigin(): string {
+    const base = (this.creds.getSecrets().baseUrl || '').trim();
+    try {
+      const u = new URL(base);
+      return `${u.protocol}//${u.host}`;
+    } catch {
+      return 'https://panel.escapez.be';
+    }
+  }
+
+  /** Drop redundant :443 on wss URLs (Cloudflare/HTTP2 quirk avoidance). */
+  private normalizeWingsSocket(socket: string): string {
+    return socket.replace(/^wss:\/\/([^/:]+):443(?=\/|$)/, 'wss://$1');
+  }
+
+  private connectWings(socket: string): WebSocket {
+    const url = this.normalizeWingsSocket(socket);
+    return new WebSocket(url, {
+      headers: {
+        Origin: this.panelOrigin(),
+      },
+    });
+  }
+
   /** Client API key present (required for console websocket). */
   isClientApiKeyConfigured(): boolean {
     return this.creds.isClientApiKeyConfigured();
@@ -440,8 +479,9 @@ export class PterodactylAdapter {
         configured: true,
         stub: false,
         token,
-        socket,
+        socket: this.normalizeWingsSocket(socket),
         serverIdentifier: serverId,
+        mode: 'sse',
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'unknown error';
@@ -504,7 +544,7 @@ export class PterodactylAdapter {
         resolve(result);
       };
 
-      const ws = new WebSocket(creds.socket!);
+      const ws = this.connectWings(creds.socket!);
       const timer = setTimeout(() => {
         finish({
           ok: false,
@@ -569,6 +609,112 @@ export class PterodactylAdapter {
         }
       });
     });
+  }
+
+
+  /**
+   * Backend-proxied live console: Wings WS (with Panel Origin) → caller.
+   * Token never leaves the backend.
+   */
+  streamConsole(
+    serverIdentifier: string | undefined,
+    onEvent: (ev: PteroConsoleStreamEvent) => void,
+  ): () => void {
+    let ws: WebSocket | null = null;
+    let closed = false;
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+
+    const cleanup = () => {
+      closed = true;
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+      if (ws) {
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
+        ws = null;
+      }
+    };
+
+    void (async () => {
+      const creds = await this.getWebsocketCredentials(serverIdentifier);
+      if (closed) return;
+      if (!creds.token || !creds.socket) {
+        onEvent({
+          kind: 'error',
+          message: creds.message || 'Geen console-credentials beschikbaar.',
+        });
+        return;
+      }
+
+      ws = this.connectWings(creds.socket);
+      ws.on('open', () => {
+        if (closed) return;
+        ws?.send(JSON.stringify({ event: 'auth', args: [creds.token] }));
+      });
+      ws.on('message', (raw) => {
+        if (closed) return;
+        let parsed: { event?: string; args?: unknown[] } = {};
+        try {
+          parsed = JSON.parse(String(raw)) as {
+            event?: string;
+            args?: unknown[];
+          };
+        } catch {
+          return;
+        }
+        if (parsed.event === 'auth success') {
+          onEvent({
+            kind: 'ready',
+            serverIdentifier: creds.serverIdentifier,
+          });
+          ws?.send(JSON.stringify({ event: 'send logs', args: [null] }));
+          pingTimer = setInterval(() => {
+            if (!closed) onEvent({ kind: 'ping' });
+          }, 20_000);
+        } else if (
+          parsed.event === 'auth error' ||
+          parsed.event === 'jwt error'
+        ) {
+          onEvent({
+            kind: 'error',
+            message: 'Console-authenticatie mislukt (ongeldige of verlopen token).',
+          });
+          cleanup();
+        } else if (parsed.event === 'console output') {
+          const chunk = parsed.args?.[0];
+          if (typeof chunk === 'string' && chunk.length) {
+            for (const line of chunk.replace(/\r/g, '').split('\n')) {
+              if (line.length) onEvent({ kind: 'line', line });
+            }
+          }
+        } else if (parsed.event === 'token expiring') {
+          onEvent({
+            kind: 'error',
+            message: 'Token verloopt — verbind opnieuw.',
+          });
+        }
+      });
+      ws.on('error', () => {
+        if (closed) return;
+        onEvent({
+          kind: 'error',
+          message: 'Websocket-fout bij verbinden met Wings.',
+        });
+      });
+      ws.on('close', () => {
+        if (pingTimer) {
+          clearInterval(pingTimer);
+          pingTimer = null;
+        }
+      });
+    })();
+
+    return cleanup;
   }
 
   private async fetchClientPower(

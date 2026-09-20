@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useCan } from '../hooks/useMeQuery';
 import {
   ApiError,
+  consoleStreamUrl,
   fetchConsoleWebsocket,
   fetchPteroSettings,
   postConsoleCommand,
+  type ConsoleStreamEvent,
 } from '../lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { HelpTip } from './HelpTip';
@@ -29,7 +31,7 @@ export function ConsolePanel({ serverIdentifier }: Props) {
   const [command, setCommand] = useState('');
   const [sending, setSending] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const esRef = useRef<EventSource | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const autoScroll = useRef(true);
 
@@ -53,13 +55,13 @@ export function ConsolePanel({ serverIdentifier }: Props) {
   }, []);
 
   const disconnect = useCallback(() => {
-    if (wsRef.current) {
+    if (esRef.current) {
       try {
-        wsRef.current.close();
+        esRef.current.close();
       } catch {
         /* ignore */
       }
-      wsRef.current = null;
+      esRef.current = null;
     }
     setConn((c) => (c === 'missing_key' ? c : 'idle'));
     setStatusMsg(null);
@@ -87,8 +89,11 @@ export function ConsolePanel({ serverIdentifier }: Props) {
       const creds = await fetchConsoleWebsocket(
         serverIdentifier || undefined,
       );
-      if (!creds.configured || creds.stub || !creds.token || !creds.socket) {
-        if (!creds.configured || (creds.message && creds.message.includes('Client API'))) {
+      if (!creds.configured || creds.stub) {
+        if (
+          !creds.configured ||
+          (creds.message && creds.message.includes('Client API'))
+        ) {
           setConn('missing_key');
           setStatusMsg(creds.message ?? null);
           return;
@@ -98,54 +103,43 @@ export function ConsolePanel({ serverIdentifier }: Props) {
         return;
       }
 
-      const ws = new WebSocket(creds.socket);
-      wsRef.current = ws;
+      // Same-origin SSE → backend opens Wings WS with Panel Origin.
+      // Direct browser wss://node… is rejected (403) for staff.escapez.be.
+      const es = new EventSource(
+        consoleStreamUrl(serverIdentifier || undefined),
+        { withCredentials: true },
+      );
+      esRef.current = es;
 
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ event: 'auth', args: [creds.token] }));
-      };
-
-      ws.onmessage = (ev) => {
-        let parsed: { event?: string; args?: unknown[] } = {};
+      es.onmessage = (ev) => {
+        let parsed: ConsoleStreamEvent | null = null;
         try {
-          parsed = JSON.parse(String(ev.data)) as {
-            event?: string;
-            args?: unknown[];
-          };
+          parsed = JSON.parse(String(ev.data)) as ConsoleStreamEvent;
         } catch {
           return;
         }
-        if (parsed.event === 'auth success') {
+        if (!parsed || typeof parsed !== 'object') return;
+        if (parsed.kind === 'ready') {
           setConn('connected');
           setStatusMsg('Verbonden met live console.');
-          ws.send(JSON.stringify({ event: 'send logs', args: [null] }));
-        } else if (
-          parsed.event === 'auth error' ||
-          parsed.event === 'jwt error'
-        ) {
+        } else if (parsed.kind === 'line') {
+          appendLine(parsed.line);
+        } else if (parsed.kind === 'error') {
           setConn('error');
-          setStatusMsg('Console-authenticatie mislukt.');
-          ws.close();
-        } else if (parsed.event === 'console output') {
-          const chunk = parsed.args?.[0];
-          if (typeof chunk === 'string' && chunk.length) {
-            for (const line of chunk.replace(/\r/g, '').split('\n')) {
-              if (line.length) appendLine(line);
-            }
-          }
-        } else if (parsed.event === 'token expiring') {
-          setStatusMsg('Token verloopt — verbind opnieuw.');
+          setStatusMsg(parsed.message || 'Console-fout.');
+          es.close();
+          esRef.current = null;
         }
+        // ping: ignore
       };
 
-      ws.onerror = () => {
-        setConn('error');
-        setStatusMsg('Websocket-fout.');
-      };
-
-      ws.onclose = () => {
-        wsRef.current = null;
-        setConn((c) => (c === 'connecting' ? 'error' : 'idle'));
+      es.onerror = () => {
+        setConn((c) => (c === 'connected' ? 'idle' : 'error'));
+        if (esRef.current === es) {
+          setStatusMsg((m) => m ?? 'Console-verbinding verbroken.');
+          es.close();
+          esRef.current = null;
+        }
       };
     } catch (err) {
       setConn('error');
@@ -200,9 +194,9 @@ export function ConsolePanel({ serverIdentifier }: Props) {
             <span>Live console</span>
             <HelpTip label="Uitleg console">
               <p>
-                De live console gebruikt de Pterodactyl Client API. De backend
-                haalt korte websocket-credentials op; de Client API-key blijft
-                op de server.
+                De live console gebruikt de Pterodactyl Client API via een
+                backend SSE-proxy. De Client API-key en Wings-token blijven op
+                de server.
               </p>
             </HelpTip>
           </h2>
@@ -230,10 +224,10 @@ export function ConsolePanel({ serverIdentifier }: Props) {
           <span>Live console</span>
           <HelpTip label="Uitleg live console">
             <p>
-              Stream via Pterodactyl websocket. Backend levert token + socket
-              (geen Client API-key in de browser). Lezen:{' '}
-              <code>console:read</code>. Commando&apos;s:{' '}
-              <code>console:write</code> of <code>server:command</code>.
+              Stream via backend SSE-proxy naar Wings (Panel Origin). Geen
+              Wings-token in de browser. Lezen: <code>console:read</code>.
+              Commando&apos;s: <code>console:write</code> of{' '}
+              <code>server:command</code>.
             </p>
           </HelpTip>
         </h2>

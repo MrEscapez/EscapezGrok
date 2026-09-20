@@ -108,4 +108,24 @@ describe('Console + Debug RBAC (e2e)', () => {
     const raw = JSON.stringify(res.body);
     expect(raw).not.toMatch(/ptlc_|ptla_/i);
   });
+
+  it('helper cannot GET console stream (403)', async () => {
+    const cookie = await loginCookie('helper', 'CHANGE_ME');
+    await request(app.getHttpServer())
+      .get('/api/v1/server/console/stream')
+      .set('Cookie', cookie)
+      .expect(403);
+  });
+
+  it('admin console websocket probe never returns token/socket', async () => {
+    const cookie = await loginCookie('admin', 'CHANGE_ME');
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/server/console/websocket')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(res.body.token).toBeUndefined();
+    expect(res.body.socket).toBeUndefined();
+    expect(res.body).not.toHaveProperty('clientApiKey');
+  });
+
 });

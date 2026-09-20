@@ -169,8 +169,35 @@ export class ServerService {
     return this.ptero.listServers();
   }
 
+  /**
+   * Browser-facing console session info. Never includes Wings token/socket
+   * (Wings rejects Origin https://staff.escapez.be — use SSE proxy instead).
+   */
   async getConsoleWebsocket(serverIdentifier?: string) {
-    return this.ptero.getWebsocketCredentials(serverIdentifier);
+    const creds = await this.ptero.getWebsocketCredentials(serverIdentifier);
+    if (!creds.configured || creds.stub || !creds.token || !creds.socket) {
+      return {
+        configured: creds.configured,
+        stub: creds.stub,
+        mode: 'sse' as const,
+        serverIdentifier: creds.serverIdentifier,
+        message: creds.message,
+      };
+    }
+    return {
+      configured: true,
+      stub: false,
+      mode: 'sse' as const,
+      serverIdentifier: creds.serverIdentifier,
+      message: 'Gebruik de SSE-stream /server/console/stream (Wings Origin restricted).',
+    };
+  }
+
+  streamConsole(
+    serverIdentifier: string | undefined,
+    onEvent: Parameters<PterodactylAdapter['streamConsole']>[1],
+  ) {
+    return this.ptero.streamConsole(serverIdentifier, onEvent);
   }
 
   async sendConsoleCommand(command: string, serverIdentifier?: string) {
