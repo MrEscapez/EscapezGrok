@@ -52,16 +52,41 @@ export type PunishmentsResponse = {
   items: PunishmentItem[];
 };
 
+export type TicketMessage = {
+  id: string;
+  content: string;
+  author: string;
+  createdAt: string;
+};
+
 export type TicketItem = {
   id: string;
   subject: string;
   player: string;
   status: string;
+  ticketNumber: number | null;
+  claimedBy: string | null;
+  priority: string | null;
   createdAt: string;
+  updatedAt: string;
+};
+
+export type TicketDetail = TicketItem & {
+  categoryId: string | null;
+  channelId: string | null;
+  closedAt: string | null;
+  messages: TicketMessage[];
 };
 
 export type TicketsResponse = {
   items: TicketItem[];
+  configured: boolean;
+};
+
+export type TicketSyncResult = {
+  ok: boolean;
+  upserted: number;
+  message: string;
 };
 
 export type BridgeHeartbeat = {
@@ -166,6 +191,18 @@ export function fetchPunishments(): Promise<PunishmentsResponse> {
 
 export function fetchTickets(): Promise<TicketsResponse> {
   return apiFetch<TicketsResponse>('/tickets');
+}
+
+export function fetchTicket(id: string): Promise<TicketDetail> {
+  return apiFetch<TicketDetail>(`/tickets/${encodeURIComponent(id)}`);
+}
+
+/** Sync from Ticket Tool API — requires tickets:manage. Never logs tokens. */
+export function syncTickets(): Promise<TicketSyncResult> {
+  return apiFetch<TicketSyncResult>('/tickets/sync', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 }
 
 export function fetchBridgeStatus(): Promise<BridgeStatus> {
@@ -377,6 +414,49 @@ export function testPteroConnection(): Promise<PteroTestResult> {
     body: JSON.stringify({}),
   });
 }
+
+export type TicketToolPublicConfig = {
+  configured: boolean;
+  apiTokenConfigured: boolean;
+  apiTokenHint: string | null;
+  webhookSecretConfigured: boolean;
+  webhookSecretHint: string | null;
+  source: 'file' | 'env' | 'none';
+  webhookUrlHint: string;
+  webhookEventsHint: string[];
+};
+
+export type TicketToolConfigSaveInput = {
+  /** Write-only — omit to keep; never log this value. */
+  apiToken?: string;
+  webhookSecret?: string;
+  clearApiToken?: boolean;
+  clearWebhookSecret?: boolean;
+};
+
+export function fetchTicketToolSettings(): Promise<TicketToolPublicConfig> {
+  return apiFetch<TicketToolPublicConfig>('/settings/ticket-tool');
+}
+
+/** Never log apiToken / webhookSecret values. */
+export function saveTicketToolSettings(
+  input: TicketToolConfigSaveInput,
+): Promise<TicketToolPublicConfig> {
+  const body: TicketToolConfigSaveInput = {};
+  if (typeof input.apiToken === 'string' && input.apiToken.trim()) {
+    body.apiToken = input.apiToken.trim();
+  }
+  if (typeof input.webhookSecret === 'string' && input.webhookSecret.trim()) {
+    body.webhookSecret = input.webhookSecret.trim();
+  }
+  if (input.clearApiToken) body.clearApiToken = true;
+  if (input.clearWebhookSecret) body.clearWebhookSecret = true;
+  return apiFetch<TicketToolPublicConfig>('/settings/ticket-tool', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
 
 
 export type StaffRole = {

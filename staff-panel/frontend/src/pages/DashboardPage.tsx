@@ -115,7 +115,13 @@ export function DashboardPage() {
   }).length;
   const openTickets = (ticketsQuery.data?.items ?? []).filter((t) => {
     const s = (t.status || '').toLowerCase();
-    return s === 'open' || s === 'pending' || s === 'nieuw' || !s;
+    return (
+      s === 'open' ||
+      s === 'pending' ||
+      s === 'nieuw' ||
+      s === 'in_progress' ||
+      !s
+    );
   }).length;
 
   const playerItems = playersQuery.data?.items ?? [];

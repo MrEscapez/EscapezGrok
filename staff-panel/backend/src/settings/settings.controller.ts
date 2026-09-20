@@ -13,6 +13,8 @@ import { RequirePermissions } from '../rbac/require-permissions.decorator';
 import { PteroCredentialsStore } from '../server/ptero-credentials.store';
 import { PterodactylAdapter } from '../server/pterodactyl.adapter';
 import { PatchModuleDto } from './dto/patch-module.dto';
+import { TicketToolCredentialsStore } from '../tickets/ticket-tool-credentials.store';
+import { TicketToolConfigDto } from '../tickets/dto/ticket-tool-config.dto';
 import { PteroConfigDto } from './dto/ptero-config.dto';
 import { SettingsService } from './settings.service';
 
@@ -22,6 +24,7 @@ export class SettingsController {
     private readonly settings: SettingsService,
     private readonly pteroCreds: PteroCredentialsStore,
     private readonly ptero: PterodactylAdapter,
+    private readonly ticketToolCreds: TicketToolCredentialsStore,
   ) {}
 
   @Get('modules')
@@ -62,5 +65,24 @@ export class SettingsController {
   @RequirePermissions(Permissions.SETTINGS_MANAGE)
   async testPterodactyl() {
     return this.ptero.testConnection();
+  }
+
+  /** Public Ticket Tool config — NEVER returns token/secret plaintext. */
+  @Get('ticket-tool')
+  @RequirePermissions(Permissions.SETTINGS_VIEW)
+  getTicketTool() {
+    return this.ticketToolCreds.toPublic();
+  }
+
+  /** Save API token / webhook secret (write-only). Empty fields are ignored. */
+  @Put('ticket-tool')
+  @RequirePermissions(Permissions.SETTINGS_MANAGE)
+  putTicketTool(@Body() body: TicketToolConfigDto) {
+    return this.ticketToolCreds.save({
+      apiToken: body.apiToken,
+      webhookSecret: body.webhookSecret,
+      clearApiToken: body.clearApiToken,
+      clearWebhookSecret: body.clearWebhookSecret,
+    });
   }
 }

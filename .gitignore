@@ -30,6 +30,8 @@ staff-panel/backend/data/modules.json
 staff-panel/backend/data/ptero.json
 staff-panel/backend/data/rbac.json
 staff-panel/backend/data/staff-docs.json
+staff-panel/backend/data/tickets.json
+staff-panel/backend/data/ticket-tool.json
 
 # TS incremental
 **/tsconfig*.tsbuildinfo

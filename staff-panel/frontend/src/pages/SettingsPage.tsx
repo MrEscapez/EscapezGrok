@@ -5,13 +5,16 @@ import {
   fetchBridgeStatus,
   fetchPteroSettings,
   fetchSettingsModules,
+  fetchTicketToolSettings,
   patchSettingsModule,
   savePteroSettings,
+  saveTicketToolSettings,
   testPteroConnection,
   type ModulePatchResponse,
   type ModuleSource,
   type ModuleStatus,
   type PteroPublicConfig,
+  type TicketToolPublicConfig,
 } from '../lib/api';
 import { HelpTip, LabelWithHelp } from '../components/HelpTip';
 
@@ -63,6 +66,9 @@ export function SettingsPage() {
   const [defaultServerId, setDefaultServerId] = useState('');
   const [pteroHydrated, setPteroHydrated] = useState(false);
 
+  const [ttApiToken, setTtApiToken] = useState('');
+  const [ttWebhookSecret, setTtWebhookSecret] = useState('');
+
   const modulesQuery = useQuery({
     queryKey: ['settings', 'modules'],
     queryFn: fetchSettingsModules,
@@ -79,6 +85,12 @@ export function SettingsPage() {
   const pteroQuery = useQuery({
     queryKey: ['settings', 'pterodactyl'],
     queryFn: fetchPteroSettings,
+    retry: false,
+  });
+
+  const ticketToolQuery = useQuery({
+    queryKey: ['settings', 'ticket-tool'],
+    queryFn: fetchTicketToolSettings,
     retry: false,
   });
 
@@ -215,6 +227,39 @@ export function SettingsPage() {
     },
   });
 
+
+  const saveTicketToolMutation = useMutation({
+    mutationFn: () =>
+      saveTicketToolSettings({
+        apiToken: ttApiToken.trim() || undefined,
+        webhookSecret: ttWebhookSecret.trim() || undefined,
+      }),
+    onSuccess: (data: TicketToolPublicConfig) => {
+      setTtApiToken('');
+      setTtWebhookSecret('');
+      void queryClient.invalidateQueries({
+        queryKey: ['settings', 'ticket-tool'],
+      });
+      void queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      setFeedback({
+        kind: data.configured || data.webhookSecretConfigured ? 'ok' : 'warn',
+        message:
+          data.configured || data.webhookSecretConfigured
+            ? 'Ticket Tool-instellingen opgeslagen. Token/secret blijven write-only op de backend.'
+            : 'Opgeslagen, maar Ticket Tool is nog niet volledig geconfigureerd.',
+      });
+    },
+    onError: (err) => {
+      setFeedback({
+        kind: 'error',
+        message:
+          err instanceof ApiError
+            ? err.message
+            : 'Ticket Tool-instellingen opslaan mislukt.',
+      });
+    },
+  });
+
   useEffect(() => {
     if (!feedback) return;
     const t = window.setTimeout(() => setFeedback(null), 8000);
@@ -223,10 +268,16 @@ export function SettingsPage() {
 
   const modules = modulesQuery.data?.modules ?? [];
   const ptero = pteroQuery.data;
+  const ticketTool = ticketToolQuery.data;
 
   function onPteroSave(e: FormEvent) {
     e.preventDefault();
     savePteroMutation.mutate();
+  }
+
+  function onTicketToolSave(e: FormEvent) {
+    e.preventDefault();
+    saveTicketToolMutation.mutate();
   }
 
   return (
@@ -587,6 +638,137 @@ export function SettingsPage() {
           </div>
         </form>
       </div>
+      <div className="page__card settings-ptero">
+        <h2 className="settings-section-title settings-section-title-row">
+          <span>Ticket Tool</span>
+          <HelpTip label="Uitleg Ticket Tool" wide>
+            <p>
+              Ticket Tool koppelt Discord-tickets aan dit staff panel. Maak een
+              API-token (tt_…) in Ticket Tool (Pro+) en een webhook-signing-secret.
+            </p>
+            <p>
+              Token en secret gaan alleen naar de Nest-backend (write-only) en
+              komen nooit terug in de browser of in logs.
+            </p>
+            <p>
+              Registreer in Ticket Tool de webhook-URL hieronder en abonneer de
+              genoemde events. Handtekening: HMAC-SHA256 over
+              <code>{'{'}timestamp{'}'}.{'{'}rawBody{'}'}</code>.
+            </p>
+          </HelpTip>
+        </h2>
+        <p className="settings-section-desc">
+          Webhook-URL registreren:{' '}
+          <code>{ticketTool?.webhookUrlHint ?? 'https://staff.escapez.be/api/v1/tickets/webhook'}</code>
+          . Events:{' '}
+          {(ticketTool?.webhookEventsHint ?? []).join(', ') ||
+            'TICKET_CREATED, TICKET_UPDATED, TICKET_CLOSED, TICKET_REOPENED, TICKET_CLAIMED, TICKET_UNCLAIMED, TICKET_DELETED, TICKET_MESSAGE_CREATED'}
+          .
+        </p>
+
+        {ticketToolQuery.isPending ? (
+          <p className="empty-state">Ticket Tool-config laden…</p>
+        ) : null}
+
+        {ticketToolQuery.isError ? (
+          <div className="empty-state empty-state--warn">
+            <p>
+              {ticketToolQuery.error instanceof ApiError
+                ? ticketToolQuery.error.message
+                : 'Kan Ticket Tool-instellingen niet laden.'}
+            </p>
+          </div>
+        ) : null}
+
+        {ticketTool ? (
+          <dl className="dash-dl settings-ptero__status">
+            <div>
+              <dt>API-token</dt>
+              <dd>
+                {ticketTool.apiTokenConfigured
+                  ? ticketTool.apiTokenHint ?? '••••'
+                  : 'Niet gezet'}
+              </dd>
+            </div>
+            <div>
+              <dt>Webhook-secret</dt>
+              <dd>
+                {ticketTool.webhookSecretConfigured
+                  ? ticketTool.webhookSecretHint ?? '••••'
+                  : 'Niet gezet'}
+              </dd>
+            </div>
+            <div>
+              <dt>Bron</dt>
+              <dd>{ticketTool.source}</dd>
+            </div>
+          </dl>
+        ) : null}
+
+        <form className="settings-ptero__form" onSubmit={onTicketToolSave}>
+          <LabelWithHelp
+            htmlFor="tt-token"
+            text="API-token (write-only)"
+            helpLabel="Uitleg Ticket Tool API-token"
+            help={
+              <p>
+                Token uit Ticket Tool (begint met tt_). Leeg laten bij opslaan
+                behoudt de bestaande token op de backend. Nooit in de frontend
+                bundle of logs plaatsen.
+              </p>
+            }
+          />
+          <input
+            id="tt-token"
+            className="server-input"
+            type="password"
+            value={ttApiToken}
+            onChange={(e) => setTtApiToken(e.target.value)}
+            placeholder={
+              ticketTool?.apiTokenConfigured
+                ? 'Nieuwe token om te vervangen (leeg = behouden)'
+                : 'tt_…'
+            }
+            autoComplete="new-password"
+          />
+
+          <LabelWithHelp
+            htmlFor="tt-secret"
+            text="Webhook signing secret (write-only)"
+            helpLabel="Uitleg webhook-secret"
+            help={
+              <p>
+                Signing secret dat Ticket Tool toont bij het aanmaken van de
+                webhook. Gebruikt voor HMAC-verificatie van inkomende events.
+              </p>
+            }
+          />
+          <input
+            id="tt-secret"
+            className="server-input"
+            type="password"
+            value={ttWebhookSecret}
+            onChange={(e) => setTtWebhookSecret(e.target.value)}
+            placeholder={
+              ticketTool?.webhookSecretConfigured
+                ? 'Nieuw secret om te vervangen (leeg = behouden)'
+                : 'Webhook-secret'
+            }
+            autoComplete="new-password"
+          />
+
+          <div className="settings-ptero__actions">
+            <button
+              type="submit"
+              className="server-btn server-btn--primary"
+              disabled={saveTicketToolMutation.isPending}
+            >
+              {saveTicketToolMutation.isPending ? 'Opslaan…' : 'Opslaan'}
+            </button>
+          </div>
+        </form>
+      </div>
+
     </section>
   );
 }
