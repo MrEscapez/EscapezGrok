@@ -16,6 +16,7 @@ import { UsersModule } from './users/users.module';
 import { StaffDocsModule } from './staff-docs/staff-docs.module';
 import { RbacModule } from './rbac/rbac.module';
 import { CommonModule } from './common/common.module';
+import { DebugModule } from './debug/debug.module';
 import { SessionAuthGuard } from './rbac/session-auth.guard';
 import { PermissionsGuard } from './rbac/permissions.guard';
 
@@ -40,6 +41,7 @@ import { PermissionsGuard } from './rbac/permissions.guard';
     ServerModule,
     UsersModule,
     StaffDocsModule,
+    DebugModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: SessionAuthGuard },

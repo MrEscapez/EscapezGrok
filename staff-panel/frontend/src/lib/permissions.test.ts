@@ -20,7 +20,15 @@ describe('can()', () => {
     expect(can(helper, PERMISSIONS.DASHBOARD_VIEW)).toBe(true);
     expect(can(helper, PERMISSIONS.STAFF_DOCS_READ)).toBe(true);
     expect(can(helper, PERMISSIONS.STAFF_DOCS_WRITE)).toBe(false);
+    expect(can(helper, PERMISSIONS.DEBUG_VIEW)).toBe(false);
   });
+
+  it('debug:view is distinct from dashboard:view',
+    () => {
+      expect(can(['dashboard:view'], PERMISSIONS.DEBUG_VIEW)).toBe(false);
+      expect(can(['debug:view'], PERMISSIONS.DEBUG_VIEW)).toBe(true);
+    },
+  );
 
   it('canAny / canAll helpers', () => {
     const perms = ['settings:view'];

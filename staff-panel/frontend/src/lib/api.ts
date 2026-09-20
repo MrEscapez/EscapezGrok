@@ -534,3 +534,53 @@ export function deleteStaffDocArticle(id: string): Promise<{ ok: true }> {
     { method: 'DELETE' },
   );
 }
+
+export type ConsoleWebsocketResponse = {
+  configured: boolean;
+  stub: boolean;
+  token?: string;
+  socket?: string;
+  serverIdentifier?: string;
+  message?: string;
+};
+
+export type ConsoleCommandResult = {
+  ok: boolean;
+  stub: boolean;
+  message: string;
+  command: string;
+};
+
+export type DebugOverview = {
+  status: ServerStatus;
+  servers: ServerListResponse;
+  bridge: BridgeStatus;
+  pterodactyl: PteroPublicConfig;
+  clientApiKeyConfigured: boolean;
+};
+
+/** Short-lived Ptero WS credentials — never includes clientApiKey. */
+export function fetchConsoleWebsocket(
+  serverIdentifier?: string,
+): Promise<ConsoleWebsocketResponse> {
+  const qs = serverIdentifier
+    ? `?serverIdentifier=${encodeURIComponent(serverIdentifier)}`
+    : '';
+  return apiFetch<ConsoleWebsocketResponse>(`/server/console/websocket${qs}`);
+}
+
+export function postConsoleCommand(
+  command: string,
+  serverIdentifier?: string,
+): Promise<ConsoleCommandResult> {
+  const body: { command: string; serverIdentifier?: string } = { command };
+  if (serverIdentifier) body.serverIdentifier = serverIdentifier;
+  return apiFetch<ConsoleCommandResult>('/server/console/command', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchDebugOverview(): Promise<DebugOverview> {
+  return apiFetch<DebugOverview>('/debug/overview');
+}

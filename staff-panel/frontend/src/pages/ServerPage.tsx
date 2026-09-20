@@ -13,6 +13,7 @@ import {
   type ServerStatus,
 } from '../lib/api';
 import { HelpTip } from '../components/HelpTip';
+import { ConsolePanel } from '../components/ConsolePanel';
 
 const POWER_LABELS: Record<ServerPowerAction, string> = {
   start: 'Starten',
@@ -556,6 +557,8 @@ export function ServerPage() {
           )}
         </div>
       </article>
+
+      <ConsolePanel serverIdentifier={selectedServerId} />
 
       <article className="dash-card">
         <div className="dash-card__head">

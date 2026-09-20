@@ -169,6 +169,17 @@ export class ServerService {
     return this.ptero.listServers();
   }
 
+  async getConsoleWebsocket(serverIdentifier?: string) {
+    return this.ptero.getWebsocketCredentials(serverIdentifier);
+  }
+
+  async sendConsoleCommand(command: string, serverIdentifier?: string) {
+    return this.ptero.sendConsoleCommand(command, serverIdentifier);
+  }
+
+  isClientApiKeyConfigured(): boolean {
+    return this.ptero.isClientApiKeyConfigured();
+  }
 
   async runRcon(
     command: string,

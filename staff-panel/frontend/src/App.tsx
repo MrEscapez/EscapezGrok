@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { ForbiddenPage } from './pages/ForbiddenPage';
 import { StaffInfoPage } from './pages/StaffInfoPage';
+import { DebugPage } from './pages/DebugPage';
 
 export function App() {
   return (
@@ -73,6 +74,9 @@ export function App() {
           </Route>
           <Route element={<RequirePermission permission="settings:view" />}>
             <Route path="settings" element={<SettingsPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="debug:view" />}>
+            <Route path="debug" element={<DebugPage />} />
           </Route>
         </Route>
       </Route>
