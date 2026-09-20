@@ -7,15 +7,15 @@ import { AppModule } from './app.module';
 import { scrubSecrets } from './common/scrub';
 
 async function bootstrap(): Promise<void> {
+  // rawBody: true — needed for Ticket Tool webhook HMAC over the exact bytes
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
+    rawBody: true,
   });
   const config = app.get(ConfigService);
 
-  // Security headers (Nest HTTP / Express)
   app.use(
     helmet({
-      // API + separate Vite origin in dev; CSP left loose for staff SPA
       contentSecurityPolicy: false,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
@@ -39,7 +39,6 @@ async function bootstrap(): Promise<void> {
 
   const port = Number(config.get<string>('PORT', '3000'));
   await app.listen(port);
-  // Never interpolate secrets into this line
   console.log(
     scrubSecrets(`EscapezCraft Staff Panel API listening on :${port}`),
   );

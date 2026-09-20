@@ -37,6 +37,8 @@ export async function createTestApp(
     RBAC_DATA_PATH: join(dataDir, 'rbac.json'),
     PTERO_DATA_PATH: join(dataDir, 'ptero.json'),
     STAFF_DOCS_DATA_PATH: join(dataDir, 'staff-docs.json'),
+    TICKET_TOOL_DATA_PATH: join(dataDir, 'ticket-tool.json'),
+    TICKETS_DATA_PATH: join(dataDir, 'tickets.json'),
     CORS_ORIGIN: 'http://localhost:5173',
   };
 
@@ -48,7 +50,7 @@ export async function createTestApp(
     imports: [AppModule],
   }).compile();
 
-  const app = moduleFixture.createNestApplication();
+  const app = moduleFixture.createNestApplication({ rawBody: true });
   app.setGlobalPrefix('api/v1');
   app.use(cookieParser());
   app.useGlobalPipes(

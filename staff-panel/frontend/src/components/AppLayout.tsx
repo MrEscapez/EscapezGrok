@@ -44,7 +44,7 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="topbar__brand">
+        <NavLink to="/dashboard" className="topbar__brand" title="Naar dashboard">
           <span className="topbar__logo" aria-hidden>
             EC
           </span>
@@ -52,7 +52,7 @@ export function AppLayout() {
             <strong className="topbar__title">EscapezCraft</strong>
             <span className="topbar__subtitle">Staff Panel</span>
           </div>
-        </div>
+        </NavLink>
 
         <nav className="topbar__nav" aria-label="Hoofdnavigatie">
           {visibleNav.map((item) => (
