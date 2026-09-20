@@ -12,7 +12,6 @@ const NAV_ITEMS: { to: string; label: string; permission: string }[] = [
   { to: '/punishments', label: 'Straffen', permission: 'punishments:view' },
   { to: '/tickets', label: 'Tickets', permission: 'tickets:view' },
   { to: '/appeals', label: 'Appeals', permission: 'appeals:view' },
-  { to: '/planner', label: 'Planner', permission: 'planner:view' },
   { to: '/server', label: 'Servers', permission: 'server:view' },
   { to: '/staff-info', label: 'Staff Info', permission: 'staff_docs:read' },
   { to: '/audit', label: 'Audit', permission: 'audit:view' },
@@ -21,7 +20,7 @@ const NAV_ITEMS: { to: string; label: string; permission: string }[] = [
 ];
 
 export function AppLayout() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const meQuery = useMeQuery();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -43,71 +42,83 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
-      <aside
-        className={`sidebar ${drawerOpen ? 'sidebar--open' : ''}`}
-        aria-label="Hoofdnavigatie"
-      >
-        <div className="sidebar__brand">
-          <span className="sidebar__logo">EC</span>
-          <div>
-            <strong className="sidebar__title">EscapezCraft</strong>
-            <span className="sidebar__subtitle">Staff Panel</span>
+      <header className="topbar">
+        <div className="topbar__brand">
+          <span className="topbar__logo" aria-hidden>
+            EC
+          </span>
+          <div className="topbar__brand-text">
+            <strong className="topbar__title">EscapezCraft</strong>
+            <span className="topbar__subtitle">Staff Panel</span>
           </div>
         </div>
-        <nav className="sidebar__nav">
+
+        <nav className="topbar__nav" aria-label="Hoofdnavigatie">
           {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `sidebar__link${isActive ? ' sidebar__link--active' : ''}`
+                `topbar__tab${isActive ? ' topbar__tab--active' : ''}`
               }
-              onClick={() => setDrawerOpen(false)}
             >
               {item.label}
             </NavLink>
           ))}
         </nav>
-      </aside>
 
-      {drawerOpen ? (
-        <button
-          type="button"
-          className="sidebar-backdrop"
-          aria-label="Sluit menu"
-          onClick={() => setDrawerOpen(false)}
-        />
-      ) : null}
-
-      <div className="main">
-        <header className="topbar">
+        <div className="topbar__user">
+          <span className="topbar__username" title="Ingelogde gebruiker">
+            {username}
+          </span>
+          <button
+            type="button"
+            className="topbar__logout"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
+            {logoutMutation.isPending ? 'Bezig…' : 'Uitloggen'}
+          </button>
           <button
             type="button"
             className="topbar__menu"
-            aria-label="Open menu"
-            onClick={() => setDrawerOpen(true)}
+            aria-label={menuOpen ? 'Sluit menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
           >
             ☰
           </button>
-          <span className="topbar__hint">Dark neon · Staff Panel</span>
-          <div className="topbar__user">
-            <span className="topbar__username" title="Ingelogde gebruiker">
-              {username}
-            </span>
-            <button
-              type="button"
-              className="topbar__logout"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              {logoutMutation.isPending ? 'Bezig…' : 'Uitloggen'}
-            </button>
-          </div>
-        </header>
-        <main className="content">
-          <Outlet />
-        </main>
-      </div>
+        </div>
+      </header>
+
+      {menuOpen ? (
+        <>
+          <button
+            type="button"
+            className="topbar-backdrop"
+            aria-label="Sluit menu"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav className="topbar__drawer" aria-label="Mobiel menu">
+            {visibleNav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `topbar__drawer-link${isActive ? ' topbar__drawer-link--active' : ''}`
+                }
+                onClick={() => setMenuOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </>
+      ) : null}
+
+      <main className="content">
+        <Outlet />
+      </main>
     </div>
   );
 }

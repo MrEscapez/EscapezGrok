@@ -306,7 +306,7 @@ export function SettingsPage() {
             </p>
             <button
               type="button"
-              className="planner__btn planner__btn--ghost"
+              className="ui-btn ui-btn--ghost"
               onClick={() => void modulesQuery.refetch()}
             >
               Opnieuw proberen

@@ -69,7 +69,7 @@ export function ReportsPage() {
       <header className="page__header">
         <h1 className="page__title">Reports</h1>
         <p className="page__desc">
-          Inkomende reports van spelers (layout klaar voor EscapezCore).
+          Inkomende reports van spelers — open, in behandeling of gesloten.
         </p>
       </header>
 

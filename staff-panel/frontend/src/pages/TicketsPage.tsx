@@ -67,7 +67,7 @@ export function TicketsPage() {
       <header className="page__header">
         <h1 className="page__title">Tickets</h1>
         <p className="page__desc">
-          Supporttickets (stub — nog geen ticketstore).
+          Supporttickets van spelers. Ticketstore volgt wanneer Core klaar is.
         </p>
       </header>
 

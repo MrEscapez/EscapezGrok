@@ -11,7 +11,6 @@ import { TicketsPage } from './pages/TicketsPage';
 import { StubPage } from './pages/StubPage';
 import { ServerPage } from './pages/ServerPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { PlannerPage } from './pages/PlannerPage';
 import { UsersPage } from './pages/UsersPage';
 import { ForbiddenPage } from './pages/ForbiddenPage';
 import { StaffInfoPage } from './pages/StaffInfoPage';
@@ -51,9 +50,6 @@ export function App() {
                 />
               }
             />
-          </Route>
-          <Route element={<RequirePermission permission="planner:view" />}>
-            <Route path="planner" element={<PlannerPage />} />
           </Route>
           <Route element={<RequirePermission permission="server:view" />}>
             <Route path="server" element={<ServerPage />} />
